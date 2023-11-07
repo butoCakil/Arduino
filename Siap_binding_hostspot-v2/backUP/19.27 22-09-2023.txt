@@ -1,0 +1,230 @@
+#include <SPI.h>
+#include <MFRC522.h>
+#include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
+
+// Network SSID and password
+const char* ssid = "AssNet";
+const char* password = "assemblybos";
+
+// Host (server) identification - URL
+const char* host = "10.16.1.6";
+const char* apiPath = "/siap.smknbansari.sch.id/app/directagJSON.php";
+const int port = 80;
+
+#define LED_PIN D0  // D8
+#define BUZ_PIN D1  // D1
+
+// RFID
+#define SDA_PIN 2  // D4
+#define RST_PIN 0  // D3
+
+char IDTAG[20];
+char chipID[25];                       // Store ESP8266 Chip ID
+char nodevice[20] = "202309A001";      // Change to your desired Node Device (max 20 characters)
+char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
+
+MFRC522 mfrc522(SDA_PIN, RST_PIN);
+
+// Declare jsonResponse as a global variable
+String jsonResponse;
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(BUZ_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  buzz(0);
+
+  // Setting up Wi-Fi connection
+  WiFi.hostname("NodeMCU");
+  WiFi.begin(ssid, password);
+
+  // Check Wi-Fi connection
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println();
+  Serial.println("Connected to Wi-Fi");
+  Serial.println("IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("MAC Address: ");
+  Serial.println(WiFi.macAddress());
+
+  // Get ESP8266 Chip ID
+  int num = ESP.getChipId();
+  itoa(num, chipID, 10);
+  Serial.println("Chip ID: ");
+  Serial.println(chipID);
+
+  SPI.begin();
+  mfrc522.PCD_Init();
+  Serial.println("Place your RFID Card on the Reader");
+  buzz(3);
+}
+
+void loop() {
+  char hasilTAG[20] = "";  // Store previous tag ID
+  int berhasilBaca = bacaTag();
+
+  if (berhasilBaca) {
+    if (IDTAG) {
+      buzz(1);
+    } else {
+      buzz(0);
+    }
+
+    if (strcmp(hasilTAG, IDTAG) != 0) {
+      strcpy(hasilTAG, IDTAG);
+      Serial.println("Card ID: " + String(IDTAG));
+
+      // Send data to server and receive JSON response
+      jsonResponse = sendCardIdToServer(IDTAG);
+      identifyAndProcessJsonResponse(jsonResponse);
+
+      Serial.println("Card ID: " + String(IDTAG));
+    } else {
+      Serial.println("...");
+    }
+
+    delay(1000);
+  } else {
+    hasilTAG[0] = '\0';  // Mengosongkan hasilTAG
+    IDTAG[0] = '\0';     // Mengosongkan IDTAG
+  }
+
+  buzz(0);
+  jsonResponse = "";
+}
+
+int bacaTag() {
+  if (!mfrc522.PICC_IsNewCardPresent())
+    return 0;
+
+  if (!mfrc522.PICC_ReadCardSerial())
+    return 0;
+
+  memset(IDTAG, 0, sizeof(IDTAG));
+  for (byte i = 0; i < mfrc522.uid.size; i++) {
+    snprintf(IDTAG, sizeof(IDTAG), "%s%02X", IDTAG, mfrc522.uid.uidByte[i]);
+  }
+
+  return 1;
+}
+
+String sendCardIdToServer(String cardId) {
+  WiFiClient client;
+
+  if (!client.connect(host, port)) {
+    Serial.println("Failed to connect to the server");
+    return "";
+  }
+
+  // Send RFID card data, Chip ID, Node Device, and Key to the server
+  String requestUrl = String(apiPath) + "?nokartu=" + cardId + "&idchip=" + chipID + "&nodevice=" + nodevice + "&key=" + key;
+  client.print(String("GET ") + requestUrl + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
+
+  bool jsonContent = false;     // Flag to check if Content-Type is JSON
+  bool headerComplete = false;  // Flag to check if HTTP header is complete
+
+  String httpHeader;  // To store the HTTP header
+
+  unsigned long startTime = millis();
+  while (client.connected() && millis() - startTime < 10000) {
+    if (client.available()) {
+      char c = client.read();
+
+      // Jika sudah dalam konten JSON, tambahkan karakter ke jsonResponse
+      if (jsonContent) {
+        jsonResponse += c;
+      } else {
+        httpHeader += c;
+
+        // Check for the Content-Type header
+        if (httpHeader.endsWith("Content-Type: application/json\r\n")) {
+          jsonContent = true;
+          headerComplete = true;
+        }
+      }
+    }
+  }
+
+  jsonResponse.trim();
+  client.stop();
+
+  Serial.print("HTTP header:");
+  Serial.println(httpHeader);
+  Serial.print("JSON response:");
+  Serial.println(jsonResponse);
+
+  if (!headerComplete) {
+    Serial.println("HTTP header is incomplete");
+    return "";
+  }
+
+  // Check if jsonResponse is empty or not JSON content
+  if (jsonResponse.isEmpty() || !jsonContent) {
+    Serial.println("Empty or non-JSON response");
+    return "";
+  }
+
+  httpHeader.clear();
+
+  return jsonResponse;
+}
+
+void identifyAndProcessJsonResponse(String jsonResponse_0) {
+  Serial.print("jsonResponse_0: ");
+  Serial.println(jsonResponse_0);
+  Serial.println("");
+
+  StaticJsonDocument<1024> jsonDoc;  // Gunakan kapasitas yang lebih besar jika diperlukan
+
+  DeserializationError error = deserializeJson(jsonDoc, jsonResponse_0);
+
+  if (error) {
+    Serial.print("Failed to parse JSON: ");
+    Serial.println(error.c_str());
+  } else {
+    // Access JSON elements directly
+    const char* id = jsonDoc["respon"][0]["id"];
+    const char* nodevice = jsonDoc["respon"][0]["nodevice"];
+    const char* message = jsonDoc["respon"][0]["message"];
+    const char* info = jsonDoc["respon"][0]["info"];
+    const char* nokartu = jsonDoc["respon"][0]["nokartu"];
+
+    // Print the values
+    Serial.println("JSON Elements:");
+    Serial.print("id: ");
+    Serial.println(id);
+    Serial.print("nodevice: ");
+    Serial.println(nodevice);
+    Serial.print("message: ");
+    Serial.println(message);
+    Serial.print("info: ");
+    Serial.println(info);
+    Serial.print("nokartu: ");
+    Serial.println(nokartu);
+  }
+
+  Serial.println("");
+  jsonDoc.clear();
+  jsonResponse_0.clear();
+}
+
+void buzz(int loop) {
+  if (loop == 0) {
+    digitalWrite(BUZ_PIN, LOW);
+  } else if (loop == 1) {
+    digitalWrite(BUZ_PIN, HIGH);
+  } else {
+    for (int t = 0; t < loop; t++) {
+      digitalWrite(BUZ_PIN, HIGH);
+      delay(200);
+      digitalWrite(BUZ_PIN, LOW);
+      delay(200);
+    }
+  }
+}
