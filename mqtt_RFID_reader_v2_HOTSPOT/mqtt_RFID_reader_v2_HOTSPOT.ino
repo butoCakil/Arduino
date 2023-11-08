@@ -26,8 +26,8 @@ const char* password = "onlyassemblytebos";
 // const char* password = "skanebabisa";
 
 // MQTT Broker Configuration
-const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
-// const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
+// const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
+const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
 const int mqtt_port = 1883;          // Port MQTT default
 // const int mqtt_port = 1884;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
@@ -42,7 +42,7 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 
 char IDTAG[20];
 char chipID[25];                       // Store ESP8266 Chip ID
-char nodevice[20] = "2309MAS003";      // Change to your desired Node Device (max 20 characters)
+char nodevice[20] = "2309G004";      // Change to your desired Node Device (max 20 characters)
 char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
 
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer

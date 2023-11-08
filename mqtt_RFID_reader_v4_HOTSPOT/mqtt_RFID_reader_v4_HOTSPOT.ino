@@ -28,7 +28,11 @@ const char* password = "onlyassemblytebos";
 // const char* password = "skanebabisa";
 
 // MQTT Broker Configuration
-char nodevice[20] = "2309G003";        // Change to your desired Node Device (max 20 characters)
+char nodevice[20] = "2309G004";  // GERBANG / PRESENSI MASUK (max 20 characters)
+// char nodevice[20] = "2309MAS001";  // PEMBIASAAN MASJID (max 20 characters)
+// char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
+// char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
+
 const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
 // const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
 
@@ -36,21 +40,22 @@ const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
 const char* mqtt_password = "1234";  // Password MQTT Anda
 
-#define LED_PIN D0  // D0
-#define BUZ_PIN D1  // D1
+#define LED_PIN D0  // D0 - MERAH
+#define BUZ_PIN D1  // D1 - BIRU - BUZZER
+#define OK_PIN D2   // D2 - HIJAU
 
 // RFID
 #define SDA_PIN 2  // D4
 #define RST_PIN 0  // D3
 
 char IDTAG[20];
-char chipID[25];  // Store ESP8266 Chip ID
-// char nodevice[20] = "2309MAS001";      // Change to your desired Node Device (max 20 characters)
+char chipID[25];                       // Store ESP8266 Chip ID
 char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
 
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer
 const char* buzzerCodes[] = {
   // error
+  "400", "_ _",
   "404", "_..._",
   "405", "_...._",
   "406", "_....._",
@@ -69,6 +74,7 @@ const char* buzzerCodes[] = {
   "TASK", "_._..",
   "PLAW", "_..",
   // OK
+  "200", "..",
   "SAPP", "...",
   "PPBH", "..",
   "510", "...",
@@ -94,21 +100,25 @@ PubSubClient client(espClient);
 unsigned long lastRFIDReadTime = 0;
 const unsigned long RFID_READ_INTERVAL = 600000;  // 10 menit dalam milidetik (10 * 60 * 1000)
 
-// boolean indexRestart = false;
-
 unsigned long previousLEDmqtt = 0;
 const long intervalLEDmqtt = 100;
-const long intervalLEDmqtt2 = 300;
+const long intervalLEDmqtt2 = 500;
+
+int tick = 0;
 
 void setup() {
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("Start");
+
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZ_PIN, OUTPUT);
+  pinMode(OK_PIN, OUTPUT);
 
   if (modeHotspot == true) {
     const char* ssid = hotspot;
   }
 
-  Serial.begin(115200);
   if (modeHotspot == true) {
     WiFi.begin(ssid);
   } else {
@@ -116,15 +126,14 @@ void setup() {
   }
 
   while (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_PIN, HIGH);
-    delay(200);
-    digitalWrite(LED_PIN, LOW);
-    delay(800);
-    Serial.println("Menyambungkan ke WiFi...");
+    blink(3, 100, 400);
+    Serial.print(".");
   }
 
   digitalWrite(LED_PIN, HIGH);
+  Serial.println();
   Serial.println("Tersambung ke WiFi");
+  Serial.println();
 
   // Setup MQTT client
   client.setServer(mqtt_server, mqtt_port);
@@ -133,21 +142,14 @@ void setup() {
   while (!client.connected()) {
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
       Serial.println("Tersambung ke MQTT Broker");
+      buzzBasedOnMessage("200");
     } else {
-      Serial.println("Koneksi gagal. Mengulangi koneksi...");
-      for (int q = 0; q < 5; q++) {
-        digitalWrite(LED_PIN, HIGH);
-        delay(100);
-        digitalWrite(LED_PIN, LOW);
-        delay(100);
-      }
+      Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
 
-      delay(1000);
+      blink(5, 100, 1000);
     }
   }
 
-  Serial.println();
-  Serial.println("Tersambung ke Wi-Fi");
   Serial.println("IP Address: ");
   Serial.println(WiFi.localIP());
   Serial.println("MAC Address: ");
@@ -162,21 +164,19 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   Serial.println("Tempelkan kartu RFID");
-  buzz(3);
 
   // Subscribe to a topic
-
   String topic = "responServer_";
   topic += nodevice;
   client.subscribe(topic.c_str(), 0);
-  // client.subscribe("responServer", 0);
+
+  buzz(3);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Menerima pesan pada topic: ");
   Serial.println(topic);
   for (int i = 0; i < length; i++) {
-    // Serial.print((char)payload[i]);
     receivedMessage += (char)payload[i];
   }
 
@@ -196,13 +196,19 @@ void loop() {
   // Ambil waktu sekarang
   unsigned long currentMillisLEDmqtt = millis();
 
-  // Periksa apakah sudah waktunya untuk mematikan atau menyalakan LED
+  // Indikator Koneksi LED JIka konek Kedil Slow, Jika diskonek kedip cepet
   if (!client.connected()) {
+    if (tick < 1) {
+      tick = 1;
+      Serial.println("[Stanby] Tidak terkoneksi ke Server");
+      Serial.println();
+    }
+    tick++;
+    digitalWrite(OK_PIN, LOW);
+
     if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt2) {
-      // Simpan waktu terakhir kali LED dinyalakan atau dimatikan
       previousLEDmqtt = currentMillisLEDmqtt;
 
-      // Balikkan status LED
       if (digitalRead(LED_PIN) == LOW) {
         digitalWrite(LED_PIN, HIGH);
       } else {
@@ -210,11 +216,16 @@ void loop() {
       }
     }
   } else {
+    if (tick < 1) {
+      tick = 1;
+      Serial.println("Menyambungkan ke Server.. ");
+      Serial.println();
+    }
+    tick++;
+
     if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt) {
-      // Simpan waktu terakhir kali LED dinyalakan atau dimatikan
       previousLEDmqtt = currentMillisLEDmqtt;
 
-      // Balikkan status LED
       if (digitalRead(LED_PIN) == LOW) {
         digitalWrite(LED_PIN, HIGH);
       } else {
@@ -225,18 +236,16 @@ void loop() {
 
   int berhasilBaca = bacaTag();
 
-  if (berhasilBaca) {
-    lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
-    static char hasilTAG[20] = "";  // Store previous tag ID
 
+  if (berhasilBaca) {
+    tick = 0;
     if (IDTAG) {
       buzz(1);
-      // Kemudian, segera buat koneksi MQTT lagi
       reconnect();
-    } else {
-      buzz(0);
     }
 
+    lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
+    static char hasilTAG[20] = "";  // Store previous tag ID
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
       strcpy(hasilTAG, IDTAG);
@@ -250,13 +259,16 @@ void loop() {
       // Send data to server and receive JSON response
       String jsonResponse = sendCardIdToServer(IDTAG);
 
+      digitalWrite(OK_PIN, LOW);
+
       if (aktifSerialMsg) {
         Serial.println("Selesai kirim untuk ID: " + String(IDTAG));
         Serial.println("=======================");
         Serial.println("");
       }
+
     } else {
-      Serial.println("...");
+      Serial.println("-");
     }
 
     delay(900);
@@ -271,8 +283,8 @@ void loop() {
   // Periksa apakah sudah waktunya untuk restart
   unsigned long currentTime = millis();
   if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
-    // Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
-    ESP.restart();  // Melakukan restart NodeMCU
+    Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
+    ESP.restart();
   }
 }
 
@@ -304,22 +316,19 @@ String sendCardIdToServer(String cardId) {
 
   if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
     String mqttTopic = "dariMCU_" + String(nodevice);
-    // String mqttTopic = "dariMCU";
     Serial.println("Tersambung ke MQTT Broker");
     Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
-    // client.disconnect();
-  } else {
-    Serial.println("Koneksi ke MQTT Broker gagal");
-    for (int q = 0; q <= 3; q++) {
-      digitalWrite(LED_PIN, HIGH);
-      delay(100);
-      digitalWrite(LED_PIN, LOW);
-      delay(100);
-    }
 
-    // index restart MCU
-    // indexRestart = true;
+    digitalWrite(OK_PIN, HIGH);
+    digitalWrite(LED_PIN, LOW);
+  } else {
+    digitalWrite(OK_PIN, LOW);
+    digitalWrite(LED_PIN, HIGH);
+    buzzBasedOnMessage("400");
+    Serial.println("Koneksi ke MQTT Broker gagal");
+
+    reconnect();
   }
 
   return jsonResponse;
@@ -328,29 +337,33 @@ String sendCardIdToServer(String cardId) {
 void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   while (!client.connected()) {
+    digitalWrite(OK_PIN, LOW);
+    digitalWrite(LED_PIN, HIGH);
+
     Serial.println("Menyambungkan ke MQTT Broker...");
     // Coba terhubung ke broker MQTT
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
+
       Serial.println("Tersambung ke MQTT Broker");
 
       // Langganan topik yang Anda butuhkan di sini jika diperlukan
       String topic = "responServer_";
       topic += nodevice;
       client.subscribe(topic.c_str(), 0);
-      // client.subscribe("responServer", 0);
+
+      digitalWrite(OK_PIN, HIGH);
+      digitalWrite(LED_PIN, LOW);
     } else {
-      Serial.print("Gagal, rc=");
+      digitalWrite(OK_PIN, LOW);
+      digitalWrite(LED_PIN, HIGH);
+
+      buzzBasedOnMessage("400");
+
+      Serial.print("MQTT Gagal, rc=");
       Serial.print(client.state());
       Serial.println(" mencoba konek lagi dalam 5 detik");
       // Tunggu sebelum mencoba lagi
-      for (int q = 0; q <= 5; q++) {
-        digitalWrite(LED_PIN, HIGH);
-        delay(100);
-        digitalWrite(LED_PIN, LOW);
-        delay(100);
-      }
-
-      delay(4000);
+      blink(5, 100, 2000);
     }
   }
 }
@@ -370,6 +383,16 @@ void buzz(int loop) {
       delay(100);
     }
   }
+}
+
+void blink(int _loop, int ms_, int _ms) {
+  for (int r = 0; r < _loop; r++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(ms_);
+    digitalWrite(LED_PIN, LOW);
+    delay(ms_);
+  }
+  delay(_ms);
 }
 
 void buzz_er(String _kode) {
@@ -415,6 +438,8 @@ void buzzBasedOnMessage(const char* message) {
 }
 
 void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
+  const char* pesanJSON = "";
+
   // Parse and process JSON response
   // Menghapus karakter newline dan carriage return
   jsonResponse.replace("\n", "");
@@ -424,19 +449,18 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
 
   // Menghapus karakter ganda ("") dari awal dan akhir JSON
   jsonResponse = jsonResponse.substring(1, jsonResponse.length() - 1);
-
-  // Serial.print("jsonResponse: ");
-  // Serial.println(jsonResponse);
-
-  // StaticJsonDocument<1024> jsonDoc;
   DynamicJsonDocument jsonDoc(1024);
-
   DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
 
   if (error) {
+    digitalWrite(OK_PIN, LOW);
+
+    pesanJSON = "500";
     Serial.print("gagal to parse JSON: ");
     Serial.println(error.c_str());
   } else {
+    digitalWrite(OK_PIN, HIGH);
+
     // Mengakses elemen-elemen JSON yang benar
     const char* json_id = jsonDoc["respon"][0]["id"];
     const char* json_nodevice = jsonDoc["respon"][0]["nodevice"];
@@ -466,33 +490,33 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
           Serial.println(json_nokartu);
           Serial.print("ID & Nomor Device Sesuai! ");
           Serial.println();
-
-          // Setelah selesai memproses respon, putuskan koneksi MQTT
-          Serial.println("Koneksi MQTT diputus!");
         }
 
-        client.disconnect();
-        buzzBasedOnMessage(json_message);
+        pesanJSON = json_message;
       } else {
+        digitalWrite(OK_PIN, LOW);
+
         Serial.println("ID & Nomor Device Tidak Sesuai...!");
         Serial.println("Tidak ada Respon...!");
-
-        // Setelah selesai memproses respon, putuskan koneksi MQTT
-        client.disconnect();
         Serial.println("Koneksi MQTT diputus!");
 
-        buzzBasedOnMessage("501");
+        pesanJSON = "501";
       }
     } else {
+      digitalWrite(OK_PIN, LOW);
+
       // Elemen "nodevice" tidak ada dalam JSON
       Serial.println("Elemen \"nodevice\" tidak ada dalam JSON.");
       Serial.println("Tidak ada Respon...!");
 
-      // Setelah selesai memproses respon, putuskan koneksi MQTT
-      client.disconnect();
-      Serial.println("Koneksi MQTT diputus!");
-
-      buzzBasedOnMessage("502");
+      pesanJSON = "502";
     }
   }
+
+  // Setelah selesai memproses respon, putuskan koneksi MQTT
+  client.disconnect();
+  Serial.println("Koneksi MQTT diputus!");
+
+  // aktikan Buzz sesuai KOde Pesan
+  buzzBasedOnMessage(pesanJSON);
 }

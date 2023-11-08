@@ -42,7 +42,7 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 char IDTAG[20];
 char chipID[25];  // Store ESP8266 Chip ID
 // char nodevice[20] = "2309MAS001";      // Change to your desired Node Device (max 20 characters)
-char nodevice[20] = "2309G003";        // Change to your desired Node Device (max 20 characters)
+char nodevice[20] = "2309G004";        // Change to your desired Node Device (max 20 characters)
 char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
 
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer
