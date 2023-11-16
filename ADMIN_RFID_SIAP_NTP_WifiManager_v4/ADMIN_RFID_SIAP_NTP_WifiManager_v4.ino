@@ -147,7 +147,7 @@ void loop() {
     if (strcmp(hasilTAG, IDTAG) != 0) {
       strcpy(hasilTAG, IDTAG);
       Serial.println("Nomor ID Kartu :" + String(IDTAG));
-      String apiUrl = "/siap.smknbansari.sch.id/tag.php?nokartu=" + String(IDTAG);
+      String apiUrl = "/tag.php?nokartu=" + String(IDTAG);
 
       client.print(String("GET ") + apiUrl + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
     } else {

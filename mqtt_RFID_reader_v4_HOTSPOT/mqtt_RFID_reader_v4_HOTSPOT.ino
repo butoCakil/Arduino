@@ -4,7 +4,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-boolean aktifSerialMsg = false;
+boolean aktifSerialMsg = true;
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
@@ -28,8 +28,8 @@ const char* password = "onlyassemblytebos";
 // const char* password = "skanebabisa";
 
 // MQTT Broker Configuration
-char nodevice[20] = "2309G004";  // GERBANG / PRESENSI MASUK (max 20 characters)
-// char nodevice[20] = "2309MAS001";  // PEMBIASAAN MASJID (max 20 characters)
+// char nodevice[20] = "2309G004";  // GERBANG / PRESENSI MASUK (max 20 characters)
+char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
 // char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
 // char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
 
@@ -42,7 +42,8 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 
 #define LED_PIN D0  // D0 - MERAH
 #define BUZ_PIN D1  // D1 - BIRU - BUZZER
-#define OK_PIN D2   // D2 - HIJAU
+#define OKE_PIN D2   // D2 - HIJAU
+#define SET_BTN D8  // Push BUtton SET
 
 // RFID
 #define SDA_PIN 2  // D4
@@ -113,7 +114,8 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZ_PIN, OUTPUT);
-  pinMode(OK_PIN, OUTPUT);
+  pinMode(OKE_PIN, OUTPUT);
+  pinMode(SET_BTN, INPUT_PULLUP);
 
   if (modeHotspot == true) {
     const char* ssid = hotspot;
@@ -204,7 +206,7 @@ void loop() {
       Serial.println();
     }
     tick++;
-    digitalWrite(OK_PIN, LOW);
+    digitalWrite(OKE_PIN, LOW);
 
     if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt2) {
       previousLEDmqtt = currentMillisLEDmqtt;
@@ -259,7 +261,8 @@ void loop() {
       // Send data to server and receive JSON response
       String jsonResponse = sendCardIdToServer(IDTAG);
 
-      digitalWrite(OK_PIN, LOW);
+      digitalWrite(OKE_PIN, LOW);
+      digitalWrite(LED_PIN, LOW);
 
       if (aktifSerialMsg) {
         Serial.println("Selesai kirim untuk ID: " + String(IDTAG));
@@ -320,11 +323,10 @@ String sendCardIdToServer(String cardId) {
     Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
-    digitalWrite(OK_PIN, HIGH);
-    digitalWrite(LED_PIN, LOW);
+    ledSuccess(true);
   } else {
-    digitalWrite(OK_PIN, LOW);
-    digitalWrite(LED_PIN, HIGH);
+    ledSuccess(false);
+
     buzzBasedOnMessage("400");
     Serial.println("Koneksi ke MQTT Broker gagal");
 
@@ -337,8 +339,7 @@ String sendCardIdToServer(String cardId) {
 void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   while (!client.connected()) {
-    digitalWrite(OK_PIN, LOW);
-    digitalWrite(LED_PIN, HIGH);
+    ledSuccess(false);
 
     Serial.println("Menyambungkan ke MQTT Broker...");
     // Coba terhubung ke broker MQTT
@@ -351,11 +352,9 @@ void reconnect() {
       topic += nodevice;
       client.subscribe(topic.c_str(), 0);
 
-      digitalWrite(OK_PIN, HIGH);
-      digitalWrite(LED_PIN, LOW);
+      ledSuccess(true);
     } else {
-      digitalWrite(OK_PIN, LOW);
-      digitalWrite(LED_PIN, HIGH);
+      ledSuccess(false);
 
       buzzBasedOnMessage("400");
 
@@ -395,25 +394,39 @@ void blink(int _loop, int ms_, int _ms) {
   delay(_ms);
 }
 
-void buzz_er(String _kode) {
-  int delayTime = 0;
+void ledSuccess(bool state) {
+  if (state) {
+    digitalWrite(OKE_PIN, HIGH);
+    digitalWrite(LED_PIN, LOW);
+  } else {
+    digitalWrite(OKE_PIN, LOW);
+    digitalWrite(LED_PIN, HIGH);
+  }
+}
 
+void buzz_er(String _kode) {
   for (int i = 0; i < _kode.length(); i++) {
     char karakter = _kode.charAt(i);
 
     if (karakter == '_') {
       // Buzzer berbunyi selama 1 detik
-      // tone(BUZ_PIN, 1000);  // Frekuensi bunyi buzzer (1 kHz)
+      // Frekuensi bunyi buzzer (1 kHz)
+      // tone(BUZ_PIN, 1000);  
       digitalWrite(BUZ_PIN, HIGH);
-      delay(1000);  // Bunyi selama 1 detik
-      // noTone(BUZ_PIN);  // Matikan buzzer
+      // Bunyi selama 1 detik
+      delay(1000);  
+      // Matikan buzzer
+      // noTone(BUZ_PIN);  
       digitalWrite(BUZ_PIN, LOW);
     } else if (karakter == '.') {
       // Buzzer berbunyi selama 100 mili detik
-      // tone(BUZ_PIN, 1000);  // Frekuensi bunyi buzzer (1 kHz)
+      // Frekuensi bunyi buzzer (1 kHz)
+      // tone(BUZ_PIN, 1000);  
       digitalWrite(BUZ_PIN, HIGH);
-      delay(100);  // Bunyi selama 100 mili detik
-      // noTone(BUZ_PIN);      // Matikan buzzer
+      // Bunyi selama 100 mili detik
+      delay(100);  
+      // Matikan buzzer
+      // noTone(BUZ_PIN);      
       digitalWrite(BUZ_PIN, LOW);
     } else if (karakter == ' ') {
       // Tunda 100 mili detik
@@ -425,6 +438,8 @@ void buzz_er(String _kode) {
       delay(100);  // Tunda 100 mili detik sebelum karakter berikutnya
     }
   }
+
+  delay(1000);
 }
 
 void buzzBasedOnMessage(const char* message) {
@@ -453,14 +468,12 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
 
   if (error) {
-    digitalWrite(OK_PIN, LOW);
+    ledSuccess(false);
 
     pesanJSON = "500";
     Serial.print("gagal to parse JSON: ");
     Serial.println(error.c_str());
   } else {
-    digitalWrite(OK_PIN, HIGH);
-
     // Mengakses elemen-elemen JSON yang benar
     const char* json_id = jsonDoc["respon"][0]["id"];
     const char* json_nodevice = jsonDoc["respon"][0]["nodevice"];
@@ -469,8 +482,6 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
     const char* json_nokartu = jsonDoc["respon"][0]["nokartu"];
 
     if (json_nodevice) {
-      // Print the values
-      // Serial.println("Element JSON:");
       if (aktifSerialMsg) {
         Serial.print("- id: ");
         Serial.println(json_id);
@@ -478,36 +489,37 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         Serial.println(_nodevice);
         Serial.print("- nodevice json: ");
         Serial.println(json_nodevice);
+        Serial.print("- pesan: ");
+        Serial.println(json_message);
+        Serial.print("- info: ");
+        Serial.println(json_info);
+        Serial.print("- nokartu: ");
+        Serial.println(json_nokartu);
       }
 
-      if (strcmp(_nodevice, json_nodevice) == 0) {
+      if (strcmp(_nodevice, json_nodevice) == 0 && strcmp("406", json_message) != 0) {
+        ledSuccess(true);
+
         if (aktifSerialMsg) {
-          Serial.print("- pesan: ");
-          Serial.println(json_message);
-          Serial.print("- info: ");
-          Serial.println(json_info);
-          Serial.print("- nokartu: ");
-          Serial.println(json_nokartu);
           Serial.print("ID & Nomor Device Sesuai! ");
           Serial.println();
         }
 
         pesanJSON = json_message;
       } else {
-        digitalWrite(OK_PIN, LOW);
+        ledSuccess(false);
 
         Serial.println("ID & Nomor Device Tidak Sesuai...!");
-        Serial.println("Tidak ada Respon...!");
-        Serial.println("Koneksi MQTT diputus!");
+        Serial.println("Permintaan tidak direspon.");
 
         pesanJSON = "501";
       }
     } else {
-      digitalWrite(OK_PIN, LOW);
+      ledSuccess(false);
 
       // Elemen "nodevice" tidak ada dalam JSON
       Serial.println("Elemen \"nodevice\" tidak ada dalam JSON.");
-      Serial.println("Tidak ada Respon...!");
+      Serial.println("Permintaan tidak direspon.");
 
       pesanJSON = "502";
     }
@@ -515,7 +527,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
 
   // Setelah selesai memproses respon, putuskan koneksi MQTT
   client.disconnect();
-  Serial.println("Koneksi MQTT diputus!");
+  Serial.println("Koneksi Selesai");
 
   // aktikan Buzz sesuai KOde Pesan
   buzzBasedOnMessage(pesanJSON);
