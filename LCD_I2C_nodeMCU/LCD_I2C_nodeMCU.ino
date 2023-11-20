@@ -3,7 +3,8 @@
 // Konstruk object LCD dengan alamat I2C
 // Ganti 0x3F sesuai dengan alamat I2C modul kalian
 // Jika tidak tahu dapat menggunakan LCD I2C Scanner
-LiquidCrystal_I2C lcd(0x3F, 16, 2);
+// LiquidCrystal_I2C lcd(0x3F, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
  
 void setup() {
  
