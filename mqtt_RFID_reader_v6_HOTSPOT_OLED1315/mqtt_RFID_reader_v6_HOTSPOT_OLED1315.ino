@@ -6,17 +6,15 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
 #endif
 #ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
 #endif
-
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE);  //Software I2C
-
-boolean aktifSerialMsg = false;
-boolean tungguRespon = false;
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
@@ -52,6 +50,119 @@ const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
 const char* mqtt_password = "1234";  // Password MQTT Anda
 
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+
+//Week Days
+// String weekDays[7] = { "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu" };
+String weekDays[7] = { "Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab" };
+
+//Month names
+// String months[12] = { "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Augustus", "September", "Oktober", "November", "Desember" };
+String months[12] = { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des" };
+
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE);  //Software I2C
+
+// 'check-3x', 24x24px
+const unsigned char epd_bitmap_check_3x[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x1c, 0x00,
+  0x00, 0x3e, 0x00, 0x00, 0x7f, 0x00, 0x80, 0x7f, 0x00, 0xc0, 0x3f, 0x10, 0xe0, 0x1f, 0x38, 0xf0,
+  0x0f, 0x7c, 0xf8, 0x07, 0xfe, 0xfc, 0x03, 0xff, 0xff, 0x01, 0xfe, 0xff, 0x00, 0xfc, 0x7f, 0x00,
+  0xf8, 0x3f, 0x00, 0xf0, 0x1f, 0x00, 0xe0, 0x0f, 0x00, 0xc0, 0x07, 0x00, 0x80, 0x03, 0x00, 0x00,
+  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 'x-3x', 24x24px
+const unsigned char epd_bitmap_x_3x[] = {
+  0x10, 0x00, 0x08, 0x38, 0x00, 0x1c, 0x7c, 0x00, 0x3e, 0xfe, 0x00, 0x7f, 0xff, 0x81, 0x7f, 0xfe,
+  0xc3, 0x3f, 0xfc, 0xe7, 0x1f, 0xf8, 0xff, 0x0f, 0xf0, 0xff, 0x07, 0xe0, 0xff, 0x03, 0xc0, 0xff,
+  0x01, 0x80, 0xff, 0x00, 0x80, 0xff, 0x01, 0xc0, 0xff, 0x03, 0xe0, 0xff, 0x07, 0xf0, 0xff, 0x0f,
+  0xf8, 0xf7, 0x1f, 0xfc, 0xe3, 0x3f, 0xfe, 0xc1, 0x7f, 0xff, 0x80, 0x7f, 0x7e, 0x00, 0x3f, 0x3c,
+  0x00, 0x1e, 0x18, 0x00, 0x0c, 0x00, 0x00, 0x00
+};
+
+// 'thumb-up-3x', 24x24px
+const unsigned char epd_bitmap_thumb_up_3x[] = {
+  0x00, 0x70, 0x00, 0x00, 0x70, 0x00, 0x00, 0x78, 0x00, 0x00, 0x38, 0x00, 0x00, 0x3c, 0x00, 0x00,
+  0x3c, 0x00, 0x00, 0x3e, 0x00, 0x00, 0x3e, 0x00, 0x00, 0x3f, 0x00, 0xc7, 0xff, 0x1f, 0xc7, 0xff,
+  0x1f, 0xc7, 0xff, 0x1f, 0xc7, 0xff, 0x0f, 0xc7, 0xff, 0x0f, 0xc7, 0xff, 0x0f, 0xc7, 0xff, 0x07,
+  0xc7, 0xff, 0x07, 0xc7, 0xff, 0x07, 0xc7, 0xff, 0x03, 0xc7, 0xff, 0x03, 0xc7, 0xff, 0x03, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+
+// 'card-id', 24x24px
+const unsigned char epd_card_id_3x[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x24, 0x00, 0x00, 0xc7, 0x00, 0x00,
+  0x81, 0x00, 0xfe, 0x83, 0x7f, 0x02, 0xff, 0xc0, 0x03, 0x00, 0x80, 0xf3, 0x01, 0x80, 0x1b, 0xf3,
+  0x8f, 0x0b, 0x03, 0x80, 0x0b, 0x03, 0x80, 0x0b, 0x03, 0x80, 0x1b, 0xf3, 0x9f, 0xfb, 0x03, 0x80,
+  0x03, 0x00, 0x80, 0x03, 0x00, 0x80, 0xfb, 0xff, 0x9f, 0x03, 0x00, 0x80, 0x02, 0x00, 0x80, 0xfe,
+  0xff, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 'warning-3x', 24x24px
+const unsigned char epd_bitmap_warning_3x[] = {
+  0x00, 0x0e, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x1f, 0x00, 0x80, 0x1f, 0x00, 0x80, 0x3f, 0x00, 0x80,
+  0x3f, 0x00, 0xc0, 0x7f, 0x00, 0xc0, 0x7f, 0x00, 0xe0, 0xff, 0x00, 0xe0, 0xf1, 0x00, 0xf0, 0xf1,
+  0x00, 0xf0, 0xf1, 0x01, 0xf0, 0xf1, 0x01, 0xf8, 0xf1, 0x03, 0xf8, 0xf1, 0x03, 0xfc, 0xff, 0x07,
+  0xfc, 0xff, 0x07, 0xfe, 0xff, 0x07, 0xfe, 0xf1, 0x0f, 0xfe, 0xf1, 0x0f, 0xff, 0xf1, 0x1f, 0xff,
+  0xff, 0x1f, 0xff, 0xff, 0x1f, 0xff, 0xff, 0x1f
+};
+
+// 'timer-3x', 24x24px
+const unsigned char epd_bitmap_timer_3x[] = {
+  0xc0, 0x7f, 0x00, 0xc0, 0x7f, 0x00, 0xc0, 0x7f, 0x00, 0x80, 0x3f, 0x00, 0xe0, 0x3f, 0x00, 0xf0,
+  0x1f, 0x04, 0xf8, 0x00, 0x02, 0x3c, 0x00, 0x03, 0x1e, 0xc0, 0x01, 0x0e, 0xe0, 0x00, 0x0f, 0x70,
+  0x1c, 0x07, 0x38, 0x1c, 0x07, 0x1e, 0x1c, 0x07, 0x0e, 0x1c, 0x07, 0x0e, 0x1c, 0x07, 0x00, 0x1c,
+  0x0f, 0x00, 0x1e, 0x0e, 0x00, 0x0e, 0x1e, 0x00, 0x0f, 0x3c, 0x80, 0x07, 0xf8, 0xe0, 0x03, 0xf0,
+  0xff, 0x01, 0xe0, 0xff, 0x00, 0x80, 0x3f, 0x00
+};
+
+// 'signal', 8x8px
+const unsigned char epd_bitmap_signal[] = {
+  0x40, 0x50, 0x50, 0x54, 0x54, 0x55, 0x55, 0x55
+};
+
+// 'signal-2x', 16x16px
+const unsigned char epd_bitmap_signal_2x[] = {
+  0x00, 0x30, 0x00, 0x30, 0x00, 0x33, 0x00, 0x33, 0x00, 0x33, 0x00, 0x33, 0x30, 0x33, 0x30, 0x33,
+  0x30, 0x33, 0x30, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33
+};
+
+// 'link-intact-2x', 16x16px
+const unsigned char epd_bitmap_link_intact_2x[] = {
+  0x00, 0x3c, 0x00, 0x7e, 0x00, 0xe6, 0x00, 0xc0, 0x00, 0xc0, 0xe0, 0xe3, 0xf0, 0x73, 0x38, 0x38,
+  0x1c, 0x1c, 0xce, 0x0f, 0xc7, 0x07, 0x03, 0x00, 0x03, 0x00, 0x67, 0x00, 0x7e, 0x00, 0x3c, 0x00
+};
+
+// 'loop-circular-2x', 16x16px
+const unsigned char epd_bitmap_loop_circular_2x[] = {
+  0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0xf0, 0x00, 0x38, 0x00, 0x18, 0x30, 0x0c, 0x78, 0x0c, 0xfc,
+  0x3f, 0x30, 0x1e, 0x30, 0x0c, 0x18, 0x00, 0x1c, 0x00, 0x0f, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00
+};
+
+// 'loop-circular-2x - Salin', 16x16px
+const unsigned char epd_bitmap_loop_circular_2x___Salin[] = {
+  0x80, 0x00, 0xc0, 0x00, 0xe0, 0x03, 0xe0, 0x0f, 0xc0, 0x1c, 0x80, 0x18, 0x00, 0x30, 0x00, 0x30,
+  0x0c, 0x00, 0x0c, 0x00, 0x18, 0x01, 0x38, 0x03, 0xf0, 0x07, 0xc0, 0x07, 0x00, 0x03, 0x00, 0x01
+};
+
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 48)
+const int epd_bitmap_allArray_LEN = 1;
+const unsigned char* epd_bitmap_allArray[6] = {
+  epd_bitmap_check_3x,
+  epd_bitmap_x_3x,
+  epd_bitmap_thumb_up_3x,
+  epd_card_id_3x,
+  epd_bitmap_warning_3x,
+  epd_bitmap_timer_3x
+};
+
+boolean aktifSerialMsg = false;
+boolean tungguRespon = false;
+boolean saatnyaRestart = false;
+
 #define BUZ_PIN D0  // D0 - MERAH
 // #define LED_PIN D1  // D1 - BIRU - BUZZER
 // #define OKE_PIN D2  // D2 - HIJAU
@@ -68,38 +179,38 @@ char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 cha
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer
 const char* buzzerCodes[] = {
   // error
-  "400", "_ _",
-  "404", "_..._",
-  "405", "_...._",
-  "406", "_....._",
-  "407", "_....._",
-  "500", "_....._",
-  "501", "_._..._",
-  "502", "_._....._",
-  "505", "_....._._",
-  "515", "_....._",
-  "545", "_....._",
-  "555", "_....._",
+  "400", "_ _",        // 0
+  "404", "_..._",      // 1
+  "405", "_...._",     // 2
+  "406", "_....._",    // 3
+  "407", "_....._",    // 4
+  "500", "_....._",    // 5
+  "501", "_._..._",    // 6
+  "502", "_._....._",  // 7
+  "505", "_....._._",  // 8
+  "515", "_....._",    // 9
+  "545", "_....._",    // 10
+  "555", "_....._",    // 11
   // akses
-  "IDTT", "._..",
-  "HLTM", "_.",
-  "TBPS", "._._..",
-  "TASK", "_._..",
-  "PLAW", "_..",
+  "IDTT", "._..",    // 12
+  "HLTM", "_.",      // 13
+  "TBPS", "._._..",  // 14
+  "TASK", "_._..",   // 15
+  "PLAW", "_..",     // 16
   // OK
-  "200", "..",
-  "SAPP", "...",
-  "PPBH", "..",
-  "510", "...",
-  "PPPP", "...",
-  "SMPM", "...",
-  "MMMM", "...",
-  "BMPM", "..",
-  "PKBD", "..",
-  "BMPE", "..",
-  "BPSE", "..",
-  "BPEB", "..",
-  "BMIJ", ".."
+  "200", "..",    // 17
+  "SAPP", "...",  // 18
+  "PPBH", "..",   // 19
+  "510", "...",   // 20
+  "PPPP", "...",  // 21
+  "SMPM", "...",  // 22
+  "MMMM", "...",  // 23
+  "BMPM", "..",   // 24
+  "PKBD", "..",   // 25
+  "BMPE", "..",   // 26
+  "BPSE", "..",   // 27
+  "BPEB", "..",   // 28
+  "BMIJ", ".."    // 29
 };
 
 String receivedMessage = "";
@@ -113,12 +224,10 @@ PubSubClient client(espClient);
 unsigned long lastRFIDReadTime = 0;
 const unsigned long RFID_READ_INTERVAL = 600000;  // 10 menit dalam milidetik (10 * 60 * 1000)
 
-unsigned long previousLEDmqtt = 0;
-const long intervalLEDmqtt = 100;
-const long intervalLEDmqtt2 = 500;
+unsigned long lastTunggurespon = 0;
+const unsigned long TUNGGU_RESPON_SERVER = 5000;
 
-int tick = 0;
-int blinkLCD1 = 0;
+int nom;
 
 int screenWidth = u8g2.getWidth();
 int screenHeight = u8g2.getHeight();
@@ -131,24 +240,10 @@ void setup() {
 
   u8g2.clearBuffer();                  // clear the internal memory
   u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-  u8g2.drawStr(0, 10, "SIAPP");        // write something to the internal memory
-  drawWrappedText("booting...", screenWidth / 2, screenHeight / 2, screenWidth);
-  u8g2.sendBuffer();  // transfer internal memory to the display
-  delay(1000);
+  drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+  u8g2.sendBuffer();
 
-  // Set the position and size of the loading bar
-  int barWidth = 100;
-  int barHeight = 10;
-  int barCenterX = screenWidth / 2;
-  int barCenterY = screenHeight / 2;
-
-  // Draw the loading bar with a changing progress value
-  for (float progress = 0.0; progress <= 1.0; progress += 0.1) {
-    u8g2.clearBuffer();
-    drawLoadingBar(barCenterX, barCenterY, barWidth, barHeight, progress);
-    u8g2.sendBuffer();
-    delay(50);  // Adjust the delay based on your desired animation speed
-  }
+  boot("booting...");
 
   // pinMode(LED_PIN, OUTPUT);
   pinMode(BUZ_PIN, OUTPUT);
@@ -166,8 +261,8 @@ void setup() {
   }
 
   while (WiFi.status() != WL_CONNECTED) {
-    // blink(3, 100, 400);
     Serial.print(".");
+    bootLoad("Menyambungkan WiFi...");
   }
 
   // digitalWrite(LED_PIN, HIGH);
@@ -175,10 +270,11 @@ void setup() {
   Serial.println("Tersambung ke WiFi");
   Serial.println();
 
-  u8g2.clearBuffer();            // clear the internal memory
+  u8g2.clearBuffer();  // clear the internal memory
   u8g2.setFont(u8g2_font_luBIS08_tf);
-  u8g2.drawStr(0, 10, "SIAPP");  // write something to the internal memory
-  drawWrappedText("Tersambung ke WiFi", screenWidth / 2, screenHeight / 2, screenWidth);
+  drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+  u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_check_3x);
+  drawWrappedText("Tersambung ke WiFi", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();  // transfer internal memory to the display
   delay(1000);
 
@@ -216,124 +312,37 @@ void setup() {
 
   u8g2.clearBuffer();                  // clear the internal memory
   u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-  u8g2.drawStr(0, 10, "SIAPP");        // write something to the internal memory
-  drawWrappedText("Tersambung ke Server", screenWidth / 2, screenHeight / 2, screenWidth);
+  drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+  u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_check_3x);
+  drawWrappedText("Tersambung ke Server", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();  // transfer internal memory to the display
+
+  // Initialize a NTPClient to get time
+  timeClient.begin();
+  int GMT = 7;
+  timeClient.setTimeOffset(3600 * GMT);
 
   buzz(3);
 
   Serial.println("Tempelkan kartu RFID");
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  if (aktifSerialMsg) {
-    Serial.print("Menerima pesan pada topic: ");
-    Serial.println(topic);
-  }
-
-  for (int i = 0; i < length; i++) {
-    receivedMessage += (char)payload[i];
-  }
-
-  if (aktifSerialMsg) {
-    Serial.print("Pesan: ");
-    Serial.println(receivedMessage);
-    Serial.println();
-  }
-
-  // prosen respon data
-  identifyAndProcessJsonResponse(receivedMessage, nodevice);
-}
-
-void homeLCD() {
-  u8g2.clearBuffer();
-
-  int rssi = WiFi.RSSI();
-  char* barsignal;
-
-  char rssiString[10];
-  sprintf(rssiString, "%d", rssi);
-
-  if (rssi > (-60)) {
-    barsignal = "******";
-  } else if (rssi >= (-60)) {
-    barsignal = "*****_";
-  } else if (rssi >= (-70)) {
-    barsignal = "****__";
-  } else if (rssi >= (-80)) {
-    barsignal = "***___";
-  } else if (rssi >= (-90)) {
-    barsignal = "**____";
-  } else if (rssi >= (-100)) {
-    barsignal = "*_____";
-  } else {
-    barsignal = "______";
-  }
-
-  u8g2.setFont(u8g2_font_luBIS08_tf);
-  u8g2.drawStr(0, 10, barsignal);
-  u8g2.drawStr(screenWidth - 6 * 14, 10, "SiAPP");
-  u8g2.setFont(u8g2_font_6x10_tf);
-  u8g2.drawStr(screenWidth - 4 * 9, 10, rssiString);
-  u8g2.drawStr(screenWidth - 3 * 6, 10, " db");
-
-  // Text to display in the center
-  const char* centerText;
-  if (tungguRespon) {
-    centerText = "Menunggu Respon Server...";
-  } else {
-    centerText = "Tempelkan Kartu!";
-  }
-
-  drawWrappedText(centerText, screenWidth / 2, screenHeight / 2, screenWidth);
-  u8g2.sendBuffer();
-}
-
 void loop() {
-  homeLCD();
-
+  int berhasilBaca;
+  berhasilBaca = bacaTag();
 
   client.loop();
-
-  // Ambil waktu sekarang
-  unsigned long currentMillisLEDmqtt = millis();
-
-  // Indikator Koneksi LED JIka konek Kedil Slow, Jika diskonek kedip cepet
-  if (!client.connected()) {
-    if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt2) {
-      previousLEDmqtt = currentMillisLEDmqtt;
-
-      if (blinkLCD1 == 0) {
-        blinkLCD1++;
-      } else {
-        blinkLCD1 = 0;
-      }
-    }
-  } else {
-    if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt) {
-      previousLEDmqtt = currentMillisLEDmqtt;
-      if (blinkLCD1 == 0) {
-        blinkLCD1++;
-      } else {
-        blinkLCD1 = 0;
-      }
-    }
-  }
-
-  int berhasilBaca = bacaTag();
-
+  homeLCD();
 
   if (berhasilBaca) {
-    tick = 0;
-    if (IDTAG) {
-      buzz(1);
-      reconnect();
-    }
-
     lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
     static char hasilTAG[20] = "";  // Store previous tag ID
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
+      noLoadBarJustText("Membaca ID Kartu");
+      buzz(1);
+      reconnect();
+
       strcpy(hasilTAG, IDTAG);
 
       if (aktifSerialMsg) {
@@ -344,9 +353,7 @@ void loop() {
       String jsonResponse = sendCardIdToServer(IDTAG);
 
       tungguRespon = true;
-
-      // digitalWrite(OKE_PIN, LOW);
-      // digitalWrite(LED_PIN, LOW);
+      lastTunggurespon = millis();
 
       if (aktifSerialMsg) {
         Serial.println("Selesai kirim untuk ID: " + String(IDTAG));
@@ -368,15 +375,159 @@ void loop() {
   // Periksa apakah sudah waktunya untuk restart
   unsigned long currentTime = millis();
   if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
+    saatnyaRestart = true;
+  }
+
+  if (saatnyaRestart) {
     Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
+    boot("Restart dalam 3 detik");
     buzzBasedOnMessage("400");
-    delay(3000);
+    delay(1000);
     ESP.restart();
+  }
+
+  if (tungguRespon) {
+    unsigned long currentTime2 = millis();
+    if (currentTime2 - lastTunggurespon > TUNGGU_RESPON_SERVER) {
+      tungguRespon = false;
+      u8g2.clearBuffer();
+      iconBMP(5);
+      drawWrappedText("Gagal Mengambil Info!", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      u8g2.sendBuffer();
+      client.disconnect();
+      lastTunggurespon = millis();
+    }
   }
 }
 
-void drawWrappedText(const char* text, int centerX, int centerY, int maxWidth) {
-  u8g2.setFont(u8g2_font_7x13_tf);
+void boot(const char* textboot) {
+  // Set the position and size of the loading bar
+  int barWidth = 100;
+  int barHeight = 10;
+  int barCenterX = screenWidth / 2;
+  int barCenterY = screenHeight / 2;
+
+  // Draw the loading bar with a changing progress value
+  for (float progress = 0.0; progress <= 1.0; progress += 0.1) {
+    u8g2.clearBuffer();
+    drawLoadingBar(barCenterX, barCenterY, barWidth, barHeight, progress);
+    drawWrappedText(textboot, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+    u8g2.sendBuffer();
+    delay(1);  // Adjust the delay based on your desired animation speed
+  }
+}
+
+void bootLoad(const char* textboot) {
+  // Set the position and size of the loading bar
+  int barWidth = 100;
+  int barHeight = 10;
+  int barCenterX = screenWidth / 2;
+  int barCenterY = screenHeight / 2;
+  float pis = 0.3;
+
+  // Draw the loading bar with a changing progress value
+  for (int i = 1; i <= 3; i++) {
+    float pos = pis * i;
+    u8g2.clearBuffer();
+    drawLoadingBar(barCenterX, barCenterY, barWidth, barHeight, pos);
+    drawWrappedText(textboot, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+    u8g2.sendBuffer();
+    delay(50);  // Adjust the delay based on your desired animation speed
+  }
+}
+
+void homeLCD() {
+  u8g2.clearBuffer();
+
+  int rssi = WiFi.RSSI();
+  int barsignal;
+
+  char rssiString[10];
+  sprintf(rssiString, "%d", rssi);
+
+  if (rssi >= (-70)) {
+    barsignal = 16;
+  } else if (rssi >= (-80)) {
+    barsignal = 12;
+  } else if (rssi >= (-90)) {
+    barsignal = 8;
+  } else if (rssi >= (-100)) {
+    barsignal = 4;
+  } else {
+    barsignal = 0;
+  }
+
+  u8g2.drawXBM(0, 0, barsignal, 16, epd_bitmap_signal_2x);
+  u8g2.setFont(u8g2_font_luBIS10_tf);
+  u8g2.drawStr(40, 12, "SiAPP");
+  // u8g2.setFont(u8g2_font_6x10_tf);
+  // u8g2.drawStr(96, 12, rssiString);
+  // u8g2.drawStr(116, 12, "db");
+
+  // Text to display in the center
+  const char* centerText;
+  if (tungguRespon) {
+    // x, y, length.x, length.y
+    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_link_intact_2x);
+    iconBMP(6);
+    centerText = "Menunggu Respon Server...";
+  } else {
+    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x);
+    iconBMP(4);
+    centerText = "Tempelkan Kartu!";
+    ntp();
+  }
+
+  if (rssi >= (-60)) {
+    u8g2.drawStr(15, 6, "+");
+  }
+
+  drawWrappedText(centerText, 72, 40, screenWidth * 0.75, u8g2_font_luBS08_tf);
+  u8g2.sendBuffer();
+}
+
+void iconBMP(int pilih_iconBMP) {
+  if (pilih_iconBMP) {
+    u8g2.drawXBM(0, 28, 24, 24, epd_bitmap_allArray[(pilih_iconBMP - 1)]);
+  }
+}
+
+void iconCenter(const char* _kode) {
+  u8g2.clearBuffer();
+  if (nom <= 11) {
+    // Silang
+    String errorMessage = "Error! ";
+    errorMessage += _kode;
+    drawWrappedText(errorMessage.c_str(), screenWidth / 2, 10, screenWidth, u8g2_font_7x13_tf);
+
+    drawWrappedText("Segera Hubungi Admin", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+    u8g2.drawXBM((screenWidth / 2) - 12, (screenHeight / 2) - 12, 24, 24, epd_bitmap_allArray[1]);
+  } else if (nom <= 16) {
+    // Warning
+    drawWrappedText("Akses Ditolak", screenWidth / 2, 10, screenWidth, u8g2_font_7x13_tf);
+    u8g2.drawXBM((screenWidth / 2) - 12, (screenHeight / 2) - 12, 24, 24, epd_bitmap_allArray[4]);
+  } else if (nom <= 30) {
+    // check list
+    drawWrappedText("Success", screenWidth / 2, 10, screenWidth, u8g2_font_7x13_tf);
+    u8g2.drawXBM((screenWidth / 2) - 12, (screenHeight / 2) - 12, 24, 24, epd_bitmap_allArray[0]);
+  }
+  u8g2.sendBuffer();
+  nom = 0;
+}
+
+void noLoadBarJustText(const char* _textnya) {
+  u8g2.clearBuffer();
+  drawLoadingBar(screenWidth / 2, screenHeight / 2, 100, 10, 0.7);
+  drawWrappedText(_textnya, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+  u8g2.sendBuffer();
+}
+
+void drawWrappedText(const char* text, int centerX, int centerY, int maxWidth, const uint8_t* font) {
+  // u8g2.setFont(u8g2_font_7x13_tf);
+  // u8g2.setFont(u8g2_font_luBS08_tf);
+
+  u8g2.setFont(font);
+
   const char* delimiter = " ";
   char* mutableText = strdup(text);
 
@@ -415,6 +566,11 @@ void drawLoadingBar(int centerX, int centerY, int width, int height, float progr
 }
 
 int bacaTag() {
+  if (!tungguRespon) {
+    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x___Salin);
+    u8g2.sendBuffer();
+  }
+
   if (!mfrc522.PICC_IsNewCardPresent())
     return 0;
 
@@ -446,16 +602,14 @@ String sendCardIdToServer(String cardId) {
     // Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
-    u8g2.clearBuffer();
-    drawWrappedText("Mengirim ke Server..", screenWidth / 2, screenHeight / 2, screenWidth);
-    u8g2.sendBuffer();
+    noLoadBarJustText("Mengirim ke Server");
 
   } else {
     buzzBasedOnMessage("400");
     Serial.println("Koneksi ke MQTT Broker gagal");
 
     u8g2.clearBuffer();
-    drawWrappedText("Gagal mengirim ke server!", screenWidth / 2, screenHeight / 2, screenWidth);
+    drawWrappedText("Gagal mengirim ke server!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
 
     reconnect();
@@ -472,9 +626,7 @@ void reconnect() {
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
       Serial.println("Tersambung ke MQTT Broker");
 
-      u8g2.clearBuffer();
-      drawWrappedText("tersambung ke Server..", screenWidth / 2, screenHeight / 2, screenWidth);
-      u8g2.sendBuffer();
+      noLoadBarJustText("Tersambung ke Server");
 
       // Langganan topik yang Anda butuhkan di sini jika diperlukan
       String topic = "responServer_";
@@ -484,7 +636,7 @@ void reconnect() {
       buzzBasedOnMessage("400");
 
       u8g2.clearBuffer();
-      drawWrappedText("Gagal terhubung, Koneksi Ulang", screenWidth / 2, screenHeight / 2, screenWidth);
+      drawWrappedText("Gagal terhubung, Koneksi Ulang", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
       u8g2.sendBuffer();
 
       Serial.print("MQTT Gagal, rc=");
@@ -544,12 +696,14 @@ void buzz_er(String _kode) {
 }
 
 void buzzBasedOnMessage(const char* message) {
+  nom = 0;
   for (int i = 0; i < sizeof(buzzerCodes) / sizeof(buzzerCodes[0]); i += 2) {
     if (strcmp(message, buzzerCodes[i]) == 0) {
       buzz_er(buzzerCodes[i + 1]);
       // Serial.println(buzzerCodes[i + 1]);
       break;  // Keluar dari loop setelah menemukan kode yang cocok
     }
+    nom++;
   }
 }
 
@@ -575,7 +729,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
     Serial.println(error.c_str());
 
     u8g2.clearBuffer();
-    drawWrappedText("Gagal Proses Pesan.", screenWidth / 2, screenHeight / 2, screenWidth);
+    drawWrappedText("Gagal Proses Pesan!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
   } else {
     // Mengakses elemen-elemen JSON yang benar
@@ -626,9 +780,14 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         }
 
         u8g2.clearBuffer();
+        u8g2.drawBox(0, 0, screenWidth, 12);
+        u8g2.setDrawColor(0);
         u8g2.setFont(u8g2_font_luBIS08_tf);
-        u8g2.drawStr(0, 10, "Pesan:");
-        drawWrappedText(json_info, screenWidth / 2, screenHeight / 2, screenWidth);
+        u8g2.drawStr(48, 10, "INFO:");
+        u8g2.setDrawColor(1);
+        // iconBMP(1);
+        drawWrappedText(json_info, (screenWidth / 2), screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+        // drawWrappedText(json_info, 75, 25, screenWidth * 0.75, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
         pesanJSON = json_message;
@@ -638,22 +797,32 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         Serial.println("Permintaan tidak direspon.");
 
         u8g2.clearBuffer();
-        drawWrappedText("Data tidak direspon", screenWidth / 2, screenHeight / 2, screenWidth);
+        iconBMP(2);
+        u8g2.drawBox(0, 0, screenWidth, 12);
+        u8g2.setDrawColor(0);
+        u8g2.setFont(u8g2_font_luBIS08_tf);
+        u8g2.drawStr(32, 10, "WARNING:");
+        u8g2.setDrawColor(1);
+        drawWrappedText("Device tidak terdaftar", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+        // drawWrappedText("Data tidak direspon", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
         pesanJSON = "501";
       }
-
-      // posKoma = "";
-      // indexKoma = 0;
-      // dataSetelahKoma = "";
     } else {
       // Elemen "nodevice" tidak ada dalam JSON
       Serial.println("Elemen \"nodevice\" tidak ada dalam JSON.");
       Serial.println("Permintaan tidak direspon.");
 
       u8g2.clearBuffer();
-      drawWrappedText("Data tidak direspon server", screenWidth / 2, screenHeight / 2, screenWidth);
+      iconBMP(2);
+      u8g2.drawBox(0, 0, screenWidth, 12);
+      u8g2.setDrawColor(0);
+      u8g2.setFont(u8g2_font_luBIS08_tf);
+      u8g2.drawStr(36, 10, "SERVER:");
+      u8g2.setDrawColor(1);
+      drawWrappedText("Data tidak direspon server", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      // drawWrappedText("Data tidak direspon server", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
       u8g2.sendBuffer();
 
       pesanJSON = "502";
@@ -666,6 +835,65 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   client.disconnect();
   // Serial.println("Koneksi Selesai");
   // aktikan Buzz sesuai KOde Pesan
-  buzzBasedOnMessage(pesanJSON);
-  delay(1000);
+  if (pesanJSON) {
+    buzzBasedOnMessage(pesanJSON);
+    iconCenter(pesanJSON);
+    delay(1000);
+  }
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  if (aktifSerialMsg) {
+    Serial.print("Menerima pesan pada topic: ");
+    Serial.println(topic);
+  }
+
+  for (int i = 0; i < length; i++) {
+    receivedMessage += (char)payload[i];
+  }
+
+  if (aktifSerialMsg) {
+    Serial.print("Pesan: ");
+    Serial.println(receivedMessage);
+    Serial.println();
+  }
+
+  // prosen respon data
+  identifyAndProcessJsonResponse(receivedMessage, nodevice);
+}
+
+void ntp() {
+  timeClient.update();
+  time_t epochTime = timeClient.getEpochTime();
+  //Get a time structure
+  struct tm* ptm = gmtime((time_t*)&epochTime);
+  String weekDay = weekDays[timeClient.getDay()];
+  int monthDay = ptm->tm_mday;
+  int currentMonth = ptm->tm_mon + 1;
+
+  String currentMonth_2digit;
+
+  if (currentMonth < 10) {
+    currentMonth_2digit = "0" + String(currentMonth);
+  } else {
+    currentMonth_2digit = String(currentMonth);
+  }
+
+  String currentMonthName = months[currentMonth - 1];
+  int currentYear = ptm->tm_year + 1900;
+  int lastTwoDigits = currentYear % 100;
+
+  String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + lastTwoDigits;
+  // String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + currentYear;
+  // Serial.print("Current date: ");
+  // Serial.println(hariTanggal);
+
+  String timestamp = timeClient.getFormattedTime();
+  // String timestamp = String(currentYear) + "-" + currentMonth_2digit + "-" + String(monthDay) + " " + timeClient.getFormattedTime();
+  // Serial.print("timestamp: ");
+  // Serial.println(timestamp);
+  // Serial.println("");
+
+  drawWrappedText(timestamp.c_str(), 107, 24, screenWidth, u8g2_font_6x10_tf);
+  drawWrappedText(hariTanggal.c_str(), screenWidth / 2, 64, screenWidth, u8g2_font_6x10_tf);
 }

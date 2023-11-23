@@ -4,11 +4,12 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-boolean aktifSerialMsg = true;
+boolean aktifSerialMsg = false;
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
-const char* hotspot = "HOTSPOT-SKANEBA";
+// const char* ssid = "HOTSPOT-SKANEBA";
+// const char* password = "";
 
 // HOTSPOT ITC
 // const char* ssid = "HOTSPOT-SKANEBA";
@@ -16,20 +17,28 @@ const char* hotspot = "HOTSPOT-SKANEBA";
 
 // WiFi credentials
 // ASSEMBLY TE - CNC
-const char* ssid = "ASSEMBLY ONLY";
-const char* password = "onlyassemblytebos";
+// const char* ssid = "ASSEMBLY ONLY";
+// const char* password = "onlyassemblytebos";
 
 // INSTRUKTUR TE - 2.4G
 // const char* ssid = "INTRUKTUR-TAV-2.4G";
 // const char* password = "skanebabisa1";
+
+// FABRIKASI TE / LGT
+const char* ssid = "MuT@n";
+const char* password = "n0mut4nn";
+
+// INSTRUKTUR MM - 2.4G
+// const char* ssid = "INTRUKTUR-MM-2.4";
+// const char* password = "skanebabisa";
 
 //HOSTSPOT-SKANEBA-TU
 // const char* ssid = "HOTSPOT-SKANEBA-TU";
 // const char* password = "skanebabisa";
 
 // MQTT Broker Configuration
-// char nodevice[20] = "2309G004";  // GERBANG / PRESENSI MASUK (max 20 characters)
-char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
+char nodevice[20] = "2309G001";  // GERBANG / PRESENSI MASUK (max 20 characters)
+// char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
 // char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
 // char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
 
@@ -116,10 +125,6 @@ void setup() {
   pinMode(BUZ_PIN, OUTPUT);
   pinMode(OKE_PIN, OUTPUT);
   pinMode(SET_BTN, INPUT_PULLUP);
-
-  if (modeHotspot == true) {
-    const char* ssid = hotspot;
-  }
 
   if (modeHotspot == true) {
     WiFi.begin(ssid);
