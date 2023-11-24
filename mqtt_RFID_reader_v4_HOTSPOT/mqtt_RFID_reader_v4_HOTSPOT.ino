@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 
 boolean aktifSerialMsg = false;
+boolean autoRestart = false;
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
@@ -17,16 +18,16 @@ boolean modeHotspot = false;
 
 // WiFi credentials
 // ASSEMBLY TE - CNC
-// const char* ssid = "ASSEMBLY ONLY";
-// const char* password = "onlyassemblytebos";
+const char* ssid = "ASSEMBLY ONLY";
+const char* password = "onlyassemblytebos";
 
 // INSTRUKTUR TE - 2.4G
 // const char* ssid = "INTRUKTUR-TAV-2.4G";
 // const char* password = "skanebabisa1";
 
 // FABRIKASI TE / LGT
-const char* ssid = "MuT@n";
-const char* password = "n0mut4nn";
+// const char* ssid = "MuT@n";
+// const char* password = "n0mut4nn";
 
 // INSTRUKTUR MM - 2.4G
 // const char* ssid = "INTRUKTUR-MM-2.4";
@@ -37,8 +38,8 @@ const char* password = "n0mut4nn";
 // const char* password = "skanebabisa";
 
 // MQTT Broker Configuration
-char nodevice[20] = "2309G001";  // GERBANG / PRESENSI MASUK (max 20 characters)
-// char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
+// char nodevice[20] = "2309G005";  // GERBANG / PRESENSI MASUK (max 20 characters)
+char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
 // char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
 // char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
 
@@ -51,7 +52,7 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 
 #define LED_PIN D0  // D0 - MERAH
 #define BUZ_PIN D1  // D1 - BIRU - BUZZER
-#define OKE_PIN D2   // D2 - HIJAU
+#define OKE_PIN D2  // D2 - HIJAU
 #define SET_BTN D8  // Push BUtton SET
 
 // RFID
@@ -178,6 +179,7 @@ void setup() {
   client.subscribe(topic.c_str(), 0);
 
   buzz(3);
+  client.disconnect();
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -251,7 +253,9 @@ void loop() {
       reconnect();
     }
 
-    lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
+    if (autoRestart)
+      lastRFIDReadTime = millis();  // Perbarui waktu terakhir pembacaan kartu RFID
+      
     static char hasilTAG[20] = "";  // Store previous tag ID
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
@@ -288,11 +292,13 @@ void loop() {
   buzz(0);
   receivedMessage = "";
 
-  // Periksa apakah sudah waktunya untuk restart
-  unsigned long currentTime = millis();
-  if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
-    Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
-    ESP.restart();
+  if (autoRestart) {
+    // Periksa apakah sudah waktunya untuk restart
+    unsigned long currentTime = millis();
+    if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
+      Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
+      ESP.restart();
+    }
   }
 }
 
@@ -416,22 +422,22 @@ void buzz_er(String _kode) {
     if (karakter == '_') {
       // Buzzer berbunyi selama 1 detik
       // Frekuensi bunyi buzzer (1 kHz)
-      // tone(BUZ_PIN, 1000);  
+      // tone(BUZ_PIN, 1000);
       digitalWrite(BUZ_PIN, HIGH);
       // Bunyi selama 1 detik
-      delay(1000);  
+      delay(1000);
       // Matikan buzzer
-      // noTone(BUZ_PIN);  
+      // noTone(BUZ_PIN);
       digitalWrite(BUZ_PIN, LOW);
     } else if (karakter == '.') {
       // Buzzer berbunyi selama 100 mili detik
       // Frekuensi bunyi buzzer (1 kHz)
-      // tone(BUZ_PIN, 1000);  
+      // tone(BUZ_PIN, 1000);
       digitalWrite(BUZ_PIN, HIGH);
       // Bunyi selama 100 mili detik
-      delay(100);  
+      delay(100);
       // Matikan buzzer
-      // noTone(BUZ_PIN);      
+      // noTone(BUZ_PIN);
       digitalWrite(BUZ_PIN, LOW);
     } else if (karakter == ' ') {
       // Tunda 100 mili detik

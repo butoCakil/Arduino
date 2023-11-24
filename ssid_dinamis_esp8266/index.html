@@ -14,7 +14,11 @@
         }
 
         input[type=text],
-        [type=password] {
+        [type=password],
+        [type=nodevice],
+        [type=host],
+        select
+         {
             width: 100%;
             padding: 12px 20px;
             margin: 8px 0;
@@ -63,11 +67,11 @@
             </select>
 
             <label for="nodevice">Nomor Device</label>
-            <input type="nodevice" id="nodevice" name="nodevice"
+            <input type="text" id="nodevice" name="nodevice"
                 placeholder="Nomor Device Harus diisi dengan nomor yang valid">
 
             <label for="host">HOST</label>
-            <input type="host" id="host" name="host" placeholder="Alamat Host">
+            <input type="text" id="host" name="host" placeholder="Alamat Host">
 
             <input type="submit" value="Simpan">
         </form>

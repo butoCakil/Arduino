@@ -402,7 +402,8 @@ void buzzBasedOnMessage(const char* message) {
   for (int i = 0; i < sizeof(buzzerCodes) / sizeof(buzzerCodes[0]); i += 2) {
     if (strcmp(message, buzzerCodes[i]) == 0) {
       buzz_er(buzzerCodes[i + 1]);
-      // Serial.println(buzzerCodes[i + 1]);
+      if (aktifSerialMsg)
+        Serial.println(buzzerCodes[i + 1]);
       break;  // Keluar dari loop setelah menemukan kode yang cocok
     }
     nom++;
@@ -412,11 +413,14 @@ void buzzBasedOnMessage(const char* message) {
 void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   while (!client.connected()) {
-    Serial.println("Menyambungkan ke MQTT Broker...");
+    if (aktifSerialMsg)
+      Serial.println("Menyambungkan ke MQTT Broker...");
+
     bootLoad("Menyambungkan ke Server..");
     // Coba terhubung ke broker MQTT
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-      Serial.println("Tersambung ke MQTT Broker");
+      if (aktifSerialMsg)
+        Serial.println("Tersambung ke MQTT Broker");
 
       noLoadBarJustText("Tersambung ke Server");
 
@@ -458,8 +462,12 @@ String sendCardIdToServer(String cardId) {
 
   if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
     String mqttTopic = "dariMCU_" + String(nodevice);
-    // Serial.println("Tersambung ke MQTT Broker");
-    // Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
+
+    if (aktifSerialMsg) {
+      Serial.println("Tersambung ke MQTT Broker");
+      Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
+    }
+    
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
     noLoadBarJustText("Mengirim ke Server");
@@ -630,7 +638,9 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
 
   // Setelah selesai memproses respon, putuskan koneksi MQTT
   client.disconnect();
-  // Serial.println("Koneksi Selesai");
+  if (aktifSerialMsg)
+    Serial.println("Koneksi Selesai");
+
   // aktikan Buzz sesuai KOde Pesan
   if (pesanJSON) {
     buzzBasedOnMessage(pesanJSON);

@@ -91,12 +91,18 @@ const char sukses_html[] PROGMEM = R"rawliteral(
     <title>Save Config</title>
 </head>
 <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     div {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        margin-top: -100px;
-        margin-left: -300px;
+        text-align: center;
+        background-color: #f0f0f0;
+        padding: 20px;
     }
 </style>
 
@@ -107,7 +113,38 @@ const char sukses_html[] PROGMEM = R"rawliteral(
 <body>
     <div>
         <h1>Pengaturan Berhasil Disimpan!</h1>
+        <p>SSID: <span id="ssidNew"></span></p>
+        <p>Password: <span id="passNew"></span></p>
+        <p>Hotspot: <span id="hotspot"></span></p>
+        <p>No Device: <span id="nodevice"></span></p>
+        <p>Host: <span id="host"></span></p>
     </div>
+
+    <script>
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        var ssidNew = getParameterByName('ssidNew');
+        var passNew = getParameterByName('passNew');
+        var hotspot = getParameterByName('hotspot');
+        var nodevice = getParameterByName('nodevice');
+        var host = getParameterByName('host');
+
+        window.onload = function () {
+            document.getElementById('ssidNew').textContent = ssidNew;
+            document.getElementById('passNew').textContent = passNew;
+            document.getElementById('hotspot').textContent = hotspot;
+            document.getElementById('nodevice').textContent = nodevice;
+            document.getElementById('host').textContent = host;
+        };
+    </script>
 </body>
 
 </html>

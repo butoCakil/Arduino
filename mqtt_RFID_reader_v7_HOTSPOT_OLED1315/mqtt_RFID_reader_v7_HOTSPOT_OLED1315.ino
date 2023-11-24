@@ -1,7 +1,10 @@
-#include <MFRC522.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <WiFiClient.h>
+#include <MFRC522.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+// #include <EEPROM.h>
 
 #include <Arduino.h>
 #include <U8g2lib.h>
@@ -15,6 +18,8 @@
 #ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
 #endif
+
+#include "index.h"
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
@@ -53,6 +58,7 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE);  //Software I2C
 
 boolean aktifSerialMsg = false;
+boolean autoRestart = false;
 boolean tungguRespon = false;
 boolean saatnyaRestart = false;
 
@@ -96,7 +102,7 @@ void setup() {
 
   // Set bus speed to 400 kHz
   u8g2.setBusClock(400000);
-  u8g2.setContrast(255); // Set contrast to maximum
+  u8g2.setContrast(255);  // Set contrast to maximum
 
   u8g2.clearBuffer();                  // clear the internal memory
   u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
@@ -154,7 +160,9 @@ void setup() {
   while (!client.connected()) {
     bootLoad("Menyambungkan ke Server..");
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-      Serial.println("Tersambung ke MQTT Broker");
+      if (aktifSerialMsg)
+        Serial.println("Tersambung ke MQTT Broker");
+
       buzzBasedOnMessage("200");
     } else {
       Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
@@ -178,6 +186,7 @@ void setup() {
   buzz(3);
 
   Serial.println("Tempelkan kartu RFID");
+  client.disconnect();
 }
 
 void loop() {
@@ -187,7 +196,9 @@ void loop() {
   homeLCD();
 
   if (berhasilBaca) {
-    lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
+    if (autoRestart)
+      lastRFIDReadTime = millis();  // Perbarui waktu terakhir pembacaan kartu RFID
+      
     static char hasilTAG[20] = "";  // Store previous tag ID
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
@@ -197,9 +208,8 @@ void loop() {
 
       strcpy(hasilTAG, IDTAG);
 
-      if (aktifSerialMsg) {
+      if (aktifSerialMsg)
         Serial.println("ID Kartu: " + String(IDTAG));
-      }
 
       // Send data to server and receive JSON response
       String jsonResponse = sendCardIdToServer(IDTAG);
@@ -207,12 +217,12 @@ void loop() {
       tungguRespon = true;
       lastTunggurespon = millis();
 
-      if (aktifSerialMsg) {
+      if (aktifSerialMsg)
         Serial.println("Selesai kirim untuk ID: " + String(IDTAG));
-      }
 
     } else {
-      Serial.println("-");
+      if (aktifSerialMsg)
+        Serial.println("-");
     }
 
     delay(900);
@@ -227,17 +237,21 @@ void loop() {
   u8g2.sendBuffer();
 
   // Periksa apakah sudah waktunya untuk restart
-  unsigned long currentTime = millis();
-  if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
-    saatnyaRestart = true;
-  }
+  if (autoRestart) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
+      saatnyaRestart = true;
+    }
 
-  if (saatnyaRestart) {
-    Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
-    boot("Restart dalam 3 detik");
-    buzzBasedOnMessage("400");
-    delay(1000);
-    ESP.restart();
+    if (saatnyaRestart) {
+      if (aktifSerialMsg)
+        Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
+
+      boot("Restart dalam 3 detik");
+      buzzBasedOnMessage("400");
+      delay(1000);
+      ESP.restart();
+    }
   }
 
   if (tungguRespon) {
