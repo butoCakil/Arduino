@@ -209,16 +209,29 @@ void bootLoad(const char* textboot) {
   int barHeight = 10;
   int barCenterX = screenWidth / 2;
   int barCenterY = screenHeight / 2;
-  float pis = 0.3;
+  float pis = 0.4;
 
   // Draw the loading bar with a changing progress value
-  for (int i = 1; i <= 3; i++) {
+  for (int i = 1; i <= 2; i++) {
     float pos = pis * i;
     u8g2.clearBuffer();
+
+    // Calculate elapsed seconds
+    unsigned long elapsedSeconds = (millis() - startTimeBootLoad) / 1000;
+
+    // Calculate minutes and seconds
+    int minutes = elapsedSeconds / 60;
+    int seconds = elapsedSeconds % 60;
+
+    // Convert minutes and seconds to a string
+    char timeStr[10];
+    sprintf(timeStr, "%02d:%02d", minutes, seconds);
+
     drawLoadingBar(barCenterX, barCenterY, barWidth, barHeight, pos);
+    drawWrappedText(timeStr, screenWidth / 2, 10, screenWidth, u8g2_font_7x13_tf);
     drawWrappedText(textboot, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
-    delay(50);  // Adjust the delay based on your desired animation speed
+    delay(5);  // Sesuaikan delay berdasarkan kecepatan animasi yang diinginkan
   }
 }
 
@@ -346,7 +359,7 @@ void noLoadBarJustText(const char* _textnya) {
 }
 
 int bacaTag() {
-  if (!tungguRespon) {
+  if (!tungguRespon && modeAPaktif == false) {
     u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_60);
     u8g2.sendBuffer();
   }
@@ -412,6 +425,7 @@ void buzzBasedOnMessage(const char* message) {
 
 void reconnect() {
   // Loop sampai terhubung ke broker MQTT
+  startTimeBootLoad = millis();
   while (!client.connected()) {
     if (aktifSerialMsg)
       Serial.println("Menyambungkan ke MQTT Broker...");
@@ -467,7 +481,7 @@ String sendCardIdToServer(String cardId) {
       Serial.println("Tersambung ke MQTT Broker");
       Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
     }
-    
+
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
     noLoadBarJustText("Mengirim ke Server");
@@ -591,7 +605,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         u8g2.drawStr(48, 10, "INFO:");
         u8g2.setDrawColor(1);
         // iconBMP(1);
-        drawWrappedText(json_info, (screenWidth / 2), screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+        drawWrappedText(json_info, (screenWidth / 2), (screenHeight / 2) - 5, screenWidth, u8g2_font_7x13_tf);
         // drawWrappedText(json_info, 75, 25, screenWidth * 0.75, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 

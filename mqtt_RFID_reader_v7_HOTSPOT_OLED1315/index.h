@@ -14,12 +14,14 @@ const char index_html[] PROGMEM = R"rawliteral(
             font-family: 'Courier New', Courier, monospace;
         }
 
+        h3 {
+            text-align: center;
+            font-weight: bold;
+        }
+
         input[type=text],
         [type=password],
-        [type=nodevice],
-        [type=host],
-        select
-         {
+        select {
             width: 100%;
             padding: 12px 20px;
             margin: 8px 0;
@@ -55,24 +57,24 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     <div>
         <form action="/action_page">
-            <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda">
-
-            <label for="password">Password</label>
-            <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tidak menggunakan password">
-
             <label for="hotspot">Mode Hotspot Portal</label>
             <select name="hotspot" id="hotspot">
                 <option value="">Tidak</option>
                 <option value="hotspot">Ya</option>
             </select>
 
+            <label for="ssid">SSID</label>
+            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tidak menggunakan password">
+
             <label for="nodevice">Nomor Device</label>
             <input type="text" id="nodevice" name="nodevice"
-                placeholder="Nomor Device Harus diisi dengan nomor yang valid">
+                placeholder="Nomor Device Harus diisi dengan nomor yang valid" required>
 
             <label for="host">HOST</label>
-            <input type="text" id="host" name="host" placeholder="Alamat Host">
+            <input type="password" id="host" name="host" value="172.16.80.123" placeholder="Alamat Host" required>
 
             <input type="submit" value="Simpan">
         </form>
@@ -91,12 +93,18 @@ const char sukses_html[] PROGMEM = R"rawliteral(
     <title>Save Config</title>
 </head>
 <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     div {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        margin-top: -100px;
-        margin-left: -300px;
+        text-align: center;
+        background-color: #f0f0f0;
+        padding: 20px;
     }
 </style>
 
@@ -107,7 +115,38 @@ const char sukses_html[] PROGMEM = R"rawliteral(
 <body>
     <div>
         <h1>Pengaturan Berhasil Disimpan!</h1>
+        <p>SSID: <span id="ssidNew"></span></p>
+        <p>Password: <span id="passNew"></span></p>
+        <p>Hotspot: <span id="hotspot"></span></p>
+        <p>No Device: <span id="nodevice"></span></p>
+        <p>Host: <span id="host"></span></p>
     </div>
+
+    <script>
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        var ssidNew = getParameterByName('ssidNew');
+        var passNew = getParameterByName('passNew');
+        var hotspot = getParameterByName('hotspot');
+        var nodevice = getParameterByName('nodevice');
+        var host = getParameterByName('host');
+
+        window.onload = function () {
+            document.getElementById('ssidNew').textContent = ssidNew;
+            document.getElementById('passNew').textContent = passNew;
+            document.getElementById('hotspot').textContent = hotspot;
+            document.getElementById('nodevice').textContent = nodevice;
+            document.getElementById('host').textContent = host;
+        };
+    </script>
 </body>
 
 </html>

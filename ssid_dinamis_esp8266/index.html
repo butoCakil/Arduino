@@ -13,12 +13,14 @@
             font-family: 'Courier New', Courier, monospace;
         }
 
+        h3 {
+            text-align: center;
+            font-weight: bold;
+        }
+
         input[type=text],
         [type=password],
-        [type=nodevice],
-        [type=host],
-        select
-         {
+        select {
             width: 100%;
             padding: 12px 20px;
             margin: 8px 0;
@@ -54,24 +56,33 @@
 
     <div>
         <form action="/action_page">
-            <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda">
-
-            <label for="password">Password</label>
-            <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tidak menggunakan password">
-
             <label for="hotspot">Mode Hotspot Portal</label>
             <select name="hotspot" id="hotspot">
                 <option value="">Tidak</option>
                 <option value="hotspot">Ya</option>
             </select>
 
+            <label for="ssid">SSID</label>
+            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tidak menggunakan password">
+
             <label for="nodevice">Nomor Device</label>
             <input type="text" id="nodevice" name="nodevice"
-                placeholder="Nomor Device Harus diisi dengan nomor yang valid">
+                placeholder="Nomor Device Harus diisi dengan nomor yang valid" required>
 
             <label for="host">HOST</label>
-            <input type="text" id="host" name="host" placeholder="Alamat Host">
+            <input type="text" id="host" name="host" value="172.16.80.123" placeholder="Alamat Host" required>
+
+            <label for="port">Port</label>
+            <input type="number" id="port" name="port" value="1883" placeholder="Port" required>
+
+            <label for="user">User MQTT</label>
+            <input type="password" id="user" name="user" value="ben" placeholder="MQTT User" required>
+
+            <label for="mqtt_pass">Password MQTT</label>
+            <input type="password" id="mqtt_pass" name="mqtt_pass" value="1234" placeholder="MQTT Password" required>
 
             <input type="submit" value="Simpan">
         </form>
