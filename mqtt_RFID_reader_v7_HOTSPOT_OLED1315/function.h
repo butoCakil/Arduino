@@ -1,54 +1,40 @@
-#include <MFRC522.h>
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
-#include <ArduinoJson.h>
+// Membuat array untuk memetakan pesan ke kode bunyi buzzer
+const char* buzzerCodes[] = {
+  // error
+  "400", "_ _",        // 0
+  "404", "_..._",      // 1
+  "405", "_...._",     // 2
+  "406", "_....._",    // 3
+  "407", "_....._",    // 4
+  "500", "_....._",    // 5
+  "501", "_._..._",    // 6
+  "502", "_._....._",  // 7
+  "505", "_....._._",  // 8
+  "515", "_....._",    // 9
+  "545", "_....._",    // 10
+  "555", "_....._",    // 11
+  // akses
+  "IDTT", "._..",    // 12
+  "HLTM", "_.",      // 13
+  "TBPS", "._._..",  // 14
+  "TASK", "_._..",   // 15
+  "PLAW", "_..",     // 16
+  // OK
+  "200", "..",    // 17
+  "SAPP", "...",  // 18
+  "PPBH", "..",   // 19
+  "510", "...",   // 20
+  "PPPP", "...",  // 21
+  "SMPM", "...",  // 22
+  "MMMM", "...",  // 23
+  "BMPM", "..",   // 24
+  "PKBD", "..",   // 25
+  "BMPE", "..",   // 26
+  "BPSE", "..",   // 27
+  "BPEB", "..",   // 28
+  "BMIJ", ".."    // 29
+};
 
-#include <Arduino.h>
-#include <U8g2lib.h>
-
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-
-#ifdef U8X8_HAVE_HW_SPI
-#include <SPI.h>
-#endif
-#ifdef U8X8_HAVE_HW_I2C
-#include <Wire.h>
-#endif
-
-// Ganti true jika berhotspot tanpa password
-boolean modeHotspot = false;
-const char* hotspot = "HOTSPOT-SKANEBA";
-
-// HOTSPOT ITC
-// const char* ssid = "HOTSPOT-SKANEBA";
-// const char* password = "itbisa123";
-
-// WiFi credentials
-// ASSEMBLY TE - CNC
-const char* ssid = "ASSEMBLY ONLY";
-const char* password = "onlyassemblytebos";
-
-// INSTRUKTUR TE - 2.4G
-// const char* ssid = "INTRUKTUR-TAV-2.4G";
-// const char* password = "skanebabisa1";
-
-//HOSTSPOT-SKANEBA-TU
-// const char* ssid = "HOTSPOT-SKANEBA-TU";
-// const char* password = "skanebabisa";
-
-// MQTT Broker Configuration
-char nodevice[20] = "2309G005";  // GERBANG / PRESENSI MASUK (max 20 characters)
-// char nodevice[20] = "2309MAS005";  // PEMBIASAAN MASJID (max 20 characters)
-// char nodevice[20] = "2310IZ002";  // POS SATPAM (IJIN) (max 20 characters)
-// char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
-
-const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
-// const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
-
-const int mqtt_port = 1883;          // Port MQTT default
-const char* mqtt_user = "ben";       // Username MQTT Anda
-const char* mqtt_password = "1234";  // Password MQTT Anda
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
@@ -56,7 +42,6 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 String weekDays[7] = { "Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab" };
 String months[12] = { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des" };
 
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE);  //Software I2C
 
 // 'check-3x', 24x24px
 const unsigned char epd_bitmap_check_3x[] = {
@@ -137,14 +122,14 @@ const unsigned char epd_bitmap_loop_circular_2x[] = {
 };
 
 // 'loop-circular-2x_120', 16x16px
-const unsigned char epd_bitmap_loop_circular_2x_120 [] = {
-	0x00, 0x00, 0x00, 0x0f, 0x00, 0x07, 0x00, 0x0f, 0x00, 0x0f, 0x08, 0x31, 0x0c, 0x18, 0x08, 0x30, 
-	0x0c, 0x10, 0x18, 0x30, 0x8c, 0x10, 0xf0, 0x00, 0xf0, 0x00, 0xe0, 0x00, 0xf0, 0x00, 0x00, 0x00
+const unsigned char epd_bitmap_loop_circular_2x_120[] = {
+  0x00, 0x00, 0x00, 0x0f, 0x00, 0x07, 0x00, 0x0f, 0x00, 0x0f, 0x08, 0x31, 0x0c, 0x18, 0x08, 0x30,
+  0x0c, 0x10, 0x18, 0x30, 0x8c, 0x10, 0xf0, 0x00, 0xf0, 0x00, 0xe0, 0x00, 0xf0, 0x00, 0x00, 0x00
 };
 // 'loop-circular-2x_60', 16x16px
-const unsigned char epd_bitmap_loop_circular_2x_60 [] = {
-	0x00, 0x00, 0x08, 0x00, 0x50, 0x05, 0xf8, 0x07, 0x38, 0x1a, 0x78, 0x08, 0x40, 0x00, 0x00, 0x00, 
-	0x00, 0x00, 0x00, 0x02, 0x10, 0x1e, 0x58, 0x1c, 0xe0, 0x1f, 0xa0, 0x0a, 0x00, 0x10, 0x00, 0x00
+const unsigned char epd_bitmap_loop_circular_2x_60[] = {
+  0x00, 0x00, 0x08, 0x00, 0x50, 0x05, 0xf8, 0x07, 0x38, 0x1a, 0x78, 0x08, 0x40, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x02, 0x10, 0x1e, 0x58, 0x1c, 0xe0, 0x1f, 0xa0, 0x0a, 0x00, 0x10, 0x00, 0x00
 };
 
 // Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 48)
@@ -158,238 +143,47 @@ const unsigned char* epd_bitmap_allArray[6] = {
   epd_bitmap_timer_3x
 };
 
-boolean aktifSerialMsg = false;
-boolean tungguRespon = false;
-boolean saatnyaRestart = false;
-
-#define BUZ_PIN D0  // D0 - MERAH
-#define SET_BTN D8  // Push BUtton SET
-
-// RFID
-#define SDA_PIN 2  // D4
-#define RST_PIN 0  // D3
-
-char IDTAG[20];
-char chipID[25];                       // Store ESP8266 Chip ID
-char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
-
-// Membuat array untuk memetakan pesan ke kode bunyi buzzer
-const char* buzzerCodes[] = {
-  // error
-  "400", "_ _",        // 0
-  "404", "_..._",      // 1
-  "405", "_...._",     // 2
-  "406", "_....._",    // 3
-  "407", "_....._",    // 4
-  "500", "_....._",    // 5
-  "501", "_._..._",    // 6
-  "502", "_._....._",  // 7
-  "505", "_....._._",  // 8
-  "515", "_....._",    // 9
-  "545", "_....._",    // 10
-  "555", "_....._",    // 11
-  // akses
-  "IDTT", "._..",    // 12
-  "HLTM", "_.",      // 13
-  "TBPS", "._._..",  // 14
-  "TASK", "_._..",   // 15
-  "PLAW", "_..",     // 16
-  // OK
-  "200", "..",    // 17
-  "SAPP", "...",  // 18
-  "PPBH", "..",   // 19
-  "510", "...",   // 20
-  "PPPP", "...",  // 21
-  "SMPM", "...",  // 22
-  "MMMM", "...",  // 23
-  "BMPM", "..",   // 24
-  "PKBD", "..",   // 25
-  "BMPE", "..",   // 26
-  "BPSE", "..",   // 27
-  "BPEB", "..",   // 28
-  "BMIJ", ".."    // 29
-};
-
-String receivedMessage = "";
-
-MFRC522 mfrc522(SDA_PIN, RST_PIN);
-
-WiFiClient espClient;
-PubSubClient client(espClient);
-
-// Variabel untuk memantau waktu terakhir pembacaan kartu RFID
-unsigned long lastRFIDReadTime = 0;
-const unsigned long RFID_READ_INTERVAL = 600000;  // 10 menit dalam milidetik (10 * 60 * 1000)
-
-unsigned long lastTunggurespon = 0;
-const unsigned long TUNGGU_RESPON_SERVER = 5000;
-
-int nom;
-
-int screenWidth = u8g2.getWidth();
-int screenHeight = u8g2.getHeight();
-
-void setup() {
-  u8g2.begin();
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("Start");
-
-  u8g2.clearBuffer();                  // clear the internal memory
-  u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-  drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-  u8g2.sendBuffer();
-
-  boot("booting...");
-
-  // pinMode(LED_PIN, OUTPUT);
-  pinMode(BUZ_PIN, OUTPUT);
-  // pinMode(OKE_PIN, OUTPUT);
-  pinMode(SET_BTN, INPUT_PULLUP);
-
-  if (modeHotspot == true) {
-    const char* ssid = hotspot;
-  }
-
-  if (modeHotspot == true) {
-    WiFi.begin(ssid);
-  } else {
-    WiFi.begin(ssid, password);
-  }
-
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    bootLoad("Menyambungkan WiFi...");
-  }
-
-  // digitalWrite(LED_PIN, HIGH);
-  Serial.println();
-  Serial.println("Tersambung ke WiFi");
-  Serial.println();
-
-  Serial.println("IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.println("MAC Address: ");
-  Serial.println(WiFi.macAddress());
-
-  // Get ESP8266 Chip ID
-  int num = ESP.getChipId();
-  itoa(num, chipID, 10);
-  Serial.println("Chip ID: ");
-  Serial.println(chipID);
-
-  displayIconStatusText(ssid, "Tersambung ke WiFi", epd_bitmap_check_3x);
-  delay(1000);
-
-  // Setup MQTT client
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
-
-  SPI.begin();
-  mfrc522.PCD_Init();
-
-  while (!client.connected()) {
-    bootLoad("Menyambungkan ke Server..");
-    if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-      Serial.println("Tersambung ke MQTT Broker");
-      buzzBasedOnMessage("200");
-    } else {
-      Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
-
-      displayIconStatusText("SIAPP", "Gagal konek Server!", epd_bitmap_x_3x);
-    }
-  }
-
-  // Subscribe to a topic
-  String topic = "responServer_";
-  topic += nodevice;
-  client.subscribe(topic.c_str(), 0);
-
-  displayIconStatusText(nodevice, "Tersambung ke Server", epd_bitmap_check_3x);
-
-  // Initialize a NTPClient to get time
-  timeClient.begin();
-  int GMT = 7;
-  timeClient.setTimeOffset(3600 * GMT);
-
-  buzz(3);
-
-  Serial.println("Tempelkan kartu RFID");
+void drawLoadingBar(int centerX, int centerY, int width, int height, float progress) {
+  u8g2.drawFrame(centerX - width / 2, centerY - height / 2, width, height);
+  int barWidth = width * progress;
+  u8g2.drawBox(centerX - width / 2, centerY - height / 2, barWidth, height);
 }
 
-void loop() {
-  int berhasilBaca;
-  berhasilBaca = bacaTag();
+void drawWrappedText(const char* text, int centerX, int centerY, int maxWidth, const uint8_t* font) {
+  // u8g2.setFont(u8g2_font_7x13_tf);
+  // u8g2.setFont(u8g2_font_luBS08_tf);
 
-  client.loop();
-  homeLCD();
+  u8g2.setFont(font);
 
-  if (berhasilBaca) {
-    lastRFIDReadTime = millis();    // Perbarui waktu terakhir pembacaan kartu RFID
-    static char hasilTAG[20] = "";  // Store previous tag ID
+  const char* delimiter = " ";
+  char* mutableText = strdup(text);
 
-    if (strcmp(hasilTAG, IDTAG) != 0) {
-      noLoadBarJustText("Membaca ID Kartu");
-      buzz(1);
-      reconnect();
+  char wrappedText[128] = "";  // Assuming the buffer size is sufficient
 
-      strcpy(hasilTAG, IDTAG);
+  char* token = strtok(mutableText, delimiter);
 
-      if (aktifSerialMsg) {
-        Serial.println("ID Kartu: " + String(IDTAG));
-      }
+  while (token != NULL) {
+    char temp[128];
+    strcpy(temp, wrappedText);
+    strcat(temp, token);
 
-      // Send data to server and receive JSON response
-      String jsonResponse = sendCardIdToServer(IDTAG);
-
-      tungguRespon = true;
-      lastTunggurespon = millis();
-
-      if (aktifSerialMsg) {
-        Serial.println("Selesai kirim untuk ID: " + String(IDTAG));
-      }
-
-    } else {
-      Serial.println("-");
+    // Check if adding the next word exceeds the maxWidth
+    if (u8g2.getStrWidth(temp) > maxWidth) {
+      // Draw the wrapped text and move to the next line
+      u8g2.drawStr((centerX - u8g2.getStrWidth(wrappedText) / 2 + 5), centerY, wrappedText);
+      centerY += u8g2.getFontAscent() - u8g2.getFontDescent();
+      strcpy(wrappedText, "");
     }
 
-    delay(900);
-    strcpy(hasilTAG, "");
-  } else {
-    strcpy(IDTAG, "");
+    strcat(wrappedText, token);
+    strcat(wrappedText, " ");
+    token = strtok(NULL, delimiter);
   }
 
-  buzz(0);
-  receivedMessage = "";
-  u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_120);
-  u8g2.sendBuffer();
+  // Draw the last line of wrapped text
+  u8g2.drawStr((centerX - u8g2.getStrWidth(wrappedText) / 2) + 5, centerY, wrappedText);
 
-  // Periksa apakah sudah waktunya untuk restart
-  unsigned long currentTime = millis();
-  if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
-    saatnyaRestart = true;
-  }
-
-  if (saatnyaRestart) {
-    Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
-    boot("Restart dalam 3 detik");
-    buzzBasedOnMessage("400");
-    delay(1000);
-    ESP.restart();
-  }
-
-  if (tungguRespon) {
-    unsigned long currentTime2 = millis();
-    if (currentTime2 - lastTunggurespon > TUNGGU_RESPON_SERVER) {
-      tungguRespon = false;
-      u8g2.clearBuffer();
-      iconBMP(5);
-      drawWrappedText("Gagal Mengambil Info!", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
-      client.disconnect();
-      lastTunggurespon = millis();
-    }
-  }
+  free(mutableText);
 }
 
 void boot(const char* textboot) {
@@ -426,6 +220,49 @@ void bootLoad(const char* textboot) {
     u8g2.sendBuffer();
     delay(50);  // Adjust the delay based on your desired animation speed
   }
+}
+
+void iconBMP(int pilih_iconBMP) {
+  if (pilih_iconBMP) {
+    u8g2.drawXBM(0, 28, 24, 24, epd_bitmap_allArray[(pilih_iconBMP - 1)]);
+  }
+}
+
+
+void ntp() {
+  timeClient.update();
+  time_t epochTime = timeClient.getEpochTime();
+  //Get a time structure
+  struct tm* ptm = gmtime((time_t*)&epochTime);
+  String weekDay = weekDays[timeClient.getDay()];
+  int monthDay = ptm->tm_mday;
+  int currentMonth = ptm->tm_mon + 1;
+
+  // String currentMonth_2digit;
+
+  // if (currentMonth < 10) {
+  //   currentMonth_2digit = "0" + String(currentMonth);
+  // } else {
+  //   currentMonth_2digit = String(currentMonth);
+  // }
+
+  String currentMonthName = months[currentMonth - 1];
+  int currentYear = ptm->tm_year + 1900;
+  int lastTwoDigits = currentYear % 100;
+
+  String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + lastTwoDigits;
+  // String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + currentYear;
+  // Serial.print("Current date: ");
+  // Serial.println(hariTanggal);
+
+  String timestamp = timeClient.getFormattedTime();
+  // String timestamp = String(currentYear) + "-" + currentMonth_2digit + "-" + String(monthDay) + " " + timeClient.getFormattedTime();
+  // Serial.print("timestamp: ");
+  // Serial.println(timestamp);
+  // Serial.println("");
+
+  drawWrappedText(timestamp.c_str(), 102, 24, screenWidth, u8g2_font_6x10_tf);
+  drawWrappedText(hariTanggal.c_str(), screenWidth / 2, 64, screenWidth, u8g2_font_6x10_tf);
 }
 
 void homeLCD() {
@@ -478,12 +315,6 @@ void homeLCD() {
   u8g2.sendBuffer();
 }
 
-void iconBMP(int pilih_iconBMP) {
-  if (pilih_iconBMP) {
-    u8g2.drawXBM(0, 28, 24, 24, epd_bitmap_allArray[(pilih_iconBMP - 1)]);
-  }
-}
-
 void iconCenter(const char* _kode) {
   u8g2.clearBuffer();
   if (nom <= 11) {
@@ -514,49 +345,6 @@ void noLoadBarJustText(const char* _textnya) {
   u8g2.sendBuffer();
 }
 
-void drawWrappedText(const char* text, int centerX, int centerY, int maxWidth, const uint8_t* font) {
-  // u8g2.setFont(u8g2_font_7x13_tf);
-  // u8g2.setFont(u8g2_font_luBS08_tf);
-
-  u8g2.setFont(font);
-
-  const char* delimiter = " ";
-  char* mutableText = strdup(text);
-
-  char wrappedText[128] = "";  // Assuming the buffer size is sufficient
-
-  char* token = strtok(mutableText, delimiter);
-
-  while (token != NULL) {
-    char temp[128];
-    strcpy(temp, wrappedText);
-    strcat(temp, token);
-
-    // Check if adding the next word exceeds the maxWidth
-    if (u8g2.getStrWidth(temp) > maxWidth) {
-      // Draw the wrapped text and move to the next line
-      u8g2.drawStr((centerX - u8g2.getStrWidth(wrappedText) / 2 + 5), centerY, wrappedText);
-      centerY += u8g2.getFontAscent() - u8g2.getFontDescent();
-      strcpy(wrappedText, "");
-    }
-
-    strcat(wrappedText, token);
-    strcat(wrappedText, " ");
-    token = strtok(NULL, delimiter);
-  }
-
-  // Draw the last line of wrapped text
-  u8g2.drawStr((centerX - u8g2.getStrWidth(wrappedText) / 2) + 5, centerY, wrappedText);
-
-  free(mutableText);
-}
-
-void drawLoadingBar(int centerX, int centerY, int width, int height, float progress) {
-  u8g2.drawFrame(centerX - width / 2, centerY - height / 2, width, height);
-  int barWidth = width * progress;
-  u8g2.drawBox(centerX - width / 2, centerY - height / 2, barWidth, height);
-}
-
 int bacaTag() {
   if (!tungguRespon) {
     u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_60);
@@ -575,101 +363,6 @@ int bacaTag() {
   }
 
   return 1;
-}
-
-String sendCardIdToServer(String cardId) {
-  String jsonResponse = "";
-  // Send RFID card data, Chip ID, Node Device, and Key to the server
-  String request = "{";
-  request += "\"nokartu\":\"" + String(cardId) + "\",";
-  request += "\"idchip\":\"" + String(chipID) + "\",";
-  request += "\"nodevice\":\"" + String(nodevice) + "\",";
-  request += "\"key\":\"" + String(key) + "\",";
-  request += "\"ipa\":\"" + WiFi.localIP().toString() + "\"";
-  request += "}";
-
-  if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-    String mqttTopic = "dariMCU_" + String(nodevice);
-    // Serial.println("Tersambung ke MQTT Broker");
-    // Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
-    client.publish(mqttTopic.c_str(), request.c_str(), 0);
-
-    noLoadBarJustText("Mengirim ke Server");
-
-  } else {
-    buzzBasedOnMessage("400");
-    Serial.println("Koneksi ke MQTT Broker gagal");
-
-    u8g2.clearBuffer();
-    drawWrappedText("Gagal mengirim ke server!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
-    u8g2.sendBuffer();
-
-    reconnect();
-  }
-
-  return jsonResponse;
-}
-
-void reconnect() {
-  // Loop sampai terhubung ke broker MQTT
-  while (!client.connected()) {
-    Serial.println("Menyambungkan ke MQTT Broker...");
-    bootLoad("Menyambungkan ke Server..");
-    // Coba terhubung ke broker MQTT
-    if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-      Serial.println("Tersambung ke MQTT Broker");
-
-      noLoadBarJustText("Tersambung ke Server");
-
-      // Langganan topik yang Anda butuhkan di sini jika diperlukan
-      String topic = "responServer_";
-      topic += nodevice;
-      client.subscribe(topic.c_str(), 0);
-    } else {
-      buzzBasedOnMessage("400");
-
-      u8g2.clearBuffer();
-      drawWrappedText("Gagal terhubung, Koneksi Ulang", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
-
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_luBIS08_tf);
-      drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-      u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_x_3x);
-      drawWrappedText("Gagal konek Server!", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
-
-      Serial.print("MQTT Gagal, rc=");
-      Serial.print(client.state());
-      Serial.println("mencoba konek lagi dalam 5 detik");
-    }
-  }
-}
-
-void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_luBIS08_tf);
-  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
-  u8g2.drawXBM(52, 16, 24, 24, _icon);
-  drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-  u8g2.sendBuffer();
-}
-
-void buzz(int loop) {
-  if (loop == 0) {
-    digitalWrite(BUZ_PIN, LOW);
-  } else if (loop == 1) {
-    digitalWrite(BUZ_PIN, HIGH);
-    delay(100);
-    digitalWrite(BUZ_PIN, LOW);
-  } else {
-    for (int t = 0; t < loop; t++) {
-      digitalWrite(BUZ_PIN, HIGH);
-      delay(100);
-      digitalWrite(BUZ_PIN, LOW);
-      delay(100);
-    }
-  }
 }
 
 void buzz_er(String _kode) {
@@ -713,6 +406,101 @@ void buzzBasedOnMessage(const char* message) {
       break;  // Keluar dari loop setelah menemukan kode yang cocok
     }
     nom++;
+  }
+}
+
+void reconnect() {
+  // Loop sampai terhubung ke broker MQTT
+  while (!client.connected()) {
+    Serial.println("Menyambungkan ke MQTT Broker...");
+    bootLoad("Menyambungkan ke Server..");
+    // Coba terhubung ke broker MQTT
+    if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
+      Serial.println("Tersambung ke MQTT Broker");
+
+      noLoadBarJustText("Tersambung ke Server");
+
+      // Langganan topik yang Anda butuhkan di sini jika diperlukan
+      String topic = "responServer_";
+      topic += nodevice;
+      client.subscribe(topic.c_str(), 0);
+    } else {
+      buzzBasedOnMessage("400");
+
+      u8g2.clearBuffer();
+      drawWrappedText("Gagal terhubung, Koneksi Ulang", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+      u8g2.sendBuffer();
+
+      u8g2.clearBuffer();
+      u8g2.setFont(u8g2_font_luBIS08_tf);
+      drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+      u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_x_3x);
+      drawWrappedText("Gagal konek Server!", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+      u8g2.sendBuffer();
+
+      Serial.print("MQTT Gagal, rc=");
+      Serial.print(client.state());
+      Serial.println("mencoba konek lagi dalam 5 detik");
+    }
+  }
+}
+
+String sendCardIdToServer(String cardId) {
+  String jsonResponse = "";
+  // Send RFID card data, Chip ID, Node Device, and Key to the server
+  String request = "{";
+  request += "\"nokartu\":\"" + String(cardId) + "\",";
+  request += "\"idchip\":\"" + String(chipID) + "\",";
+  request += "\"nodevice\":\"" + String(nodevice) + "\",";
+  request += "\"key\":\"" + String(key) + "\",";
+  request += "\"ipa\":\"" + WiFi.localIP().toString() + "\"";
+  request += "}";
+
+  if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
+    String mqttTopic = "dariMCU_" + String(nodevice);
+    // Serial.println("Tersambung ke MQTT Broker");
+    // Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
+    client.publish(mqttTopic.c_str(), request.c_str(), 0);
+
+    noLoadBarJustText("Mengirim ke Server");
+
+  } else {
+    buzzBasedOnMessage("400");
+    Serial.println("Koneksi ke MQTT Broker gagal");
+
+    u8g2.clearBuffer();
+    drawWrappedText("Gagal mengirim ke server!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+    u8g2.sendBuffer();
+
+    reconnect();
+  }
+
+  return jsonResponse;
+}
+
+void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_luBIS08_tf);
+  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
+  u8g2.drawXBM(52, 16, 24, 24, _icon);
+  drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+  u8g2.sendBuffer();
+}
+
+void buzz(int loop) {
+  if (loop == 0) {
+    digitalWrite(BUZ_PIN, LOW);
+  } else if (loop == 1) {
+    digitalWrite(BUZ_PIN, HIGH);
+    delay(100);
+    digitalWrite(BUZ_PIN, LOW);
+  } else {
+    for (int t = 0; t < loop; t++) {
+      digitalWrite(BUZ_PIN, HIGH);
+      delay(100);
+      digitalWrite(BUZ_PIN, LOW);
+      delay(100);
+    }
   }
 }
 
@@ -869,40 +657,4 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // prosen respon data
   identifyAndProcessJsonResponse(receivedMessage, nodevice);
-}
-
-void ntp() {
-  timeClient.update();
-  time_t epochTime = timeClient.getEpochTime();
-  //Get a time structure
-  struct tm* ptm = gmtime((time_t*)&epochTime);
-  String weekDay = weekDays[timeClient.getDay()];
-  int monthDay = ptm->tm_mday;
-  int currentMonth = ptm->tm_mon + 1;
-
-  // String currentMonth_2digit;
-
-  // if (currentMonth < 10) {
-  //   currentMonth_2digit = "0" + String(currentMonth);
-  // } else {
-  //   currentMonth_2digit = String(currentMonth);
-  // }
-
-  String currentMonthName = months[currentMonth - 1];
-  int currentYear = ptm->tm_year + 1900;
-  int lastTwoDigits = currentYear % 100;
-
-  String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + lastTwoDigits;
-  // String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + currentYear;
-  // Serial.print("Current date: ");
-  // Serial.println(hariTanggal);
-
-  String timestamp = timeClient.getFormattedTime();
-  // String timestamp = String(currentYear) + "-" + currentMonth_2digit + "-" + String(monthDay) + " " + timeClient.getFormattedTime();
-  // Serial.print("timestamp: ");
-  // Serial.println(timestamp);
-  // Serial.println("");
-
-  drawWrappedText(timestamp.c_str(), 102, 24, screenWidth, u8g2_font_6x10_tf);
-  drawWrappedText(hariTanggal.c_str(), screenWidth / 2, 64, screenWidth, u8g2_font_6x10_tf);
 }
