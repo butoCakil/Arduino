@@ -17,30 +17,32 @@ const char login_html[] PROGMEM = R"rawliteral(
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #d5f2d6;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
         }
 
         .container {
             padding: 5px;
             border-radius: 10px;
-            background-color: #555;
-            box-shadow: #555 5px 7px 10px;
+            /* background-color: #555; */
+            background-color: #ffffff;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
         }
 
         .content {
             padding: 20px;
             border-radius: 10px;
-            background-color: #eee;
+            background-color: #363636;
+            color: #ffffff;
+            box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
         }
 
-        h2, 
+        h2,
         h6 {
             text-align: center;
             margin: 0;
         }
 
         input[type=text],
-        [type=password],
         select {
             width: 100%;
             padding: 12px 20px;
@@ -48,6 +50,16 @@ const char login_html[] PROGMEM = R"rawliteral(
             display: inline-block;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        #password {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
             box-sizing: border-box;
         }
 
@@ -60,33 +72,44 @@ const char login_html[] PROGMEM = R"rawliteral(
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
         }
 
         input[type=submit]:hover {
             background-color: #45A049;
         }
 
+        a {
+            text-decoration: none;
+            color: gray;
+            text-shadow: rgba(51, 27, 27, 0.753) 2px 2px 10px;
+        }
+
         .tmblreboot {
             display: flex;
             align-items: center;
             justify-content: center;
-            text-decoration: none;
             margin-top: 10px;
-            color: red;
+            color: rgb(243, 11, 11);
+        }
+
+        .tmblreboot:hover {
+            font-weight: bold;
         }
 
         span {
-            background-color: #cccccc;
+            background-color: #ffffff;
             padding: 5px;
             color: aliceblue;
-            border-radius: 5px;
-            margin: auto 10px;
-            height: 30px;
-            box-shadow: #4d4242 1px 1px 3px;
+            border-radius: 0 5px 5px 0;
+            margin: auto auto;
+            height: 31px;
+            /* box-shadow: rgba(255, 255, 255, 0.753) 2px 2px 3px; */
         }
 
         span:hover {
             cursor: pointer;
+            box-shadow: #a28787 1px 1px 3px;
         }
 
         .inputPass {
@@ -95,8 +118,11 @@ const char login_html[] PROGMEM = R"rawliteral(
     </style>
     <div class="container">
         <div class="content">
-            <h2>SiAPP Config</h2>
+            <h2>𝕊𝕚𝔸ℙℙ</h2>
+            <h6>Config</h6>
+            <hr>
             <h2>Sign in</h2>
+            <br>
             <form action="/setting" method="post">
                 <input type="hidden" name="idchip" value="%s">
                 <div class="field-wrapper">
@@ -121,7 +147,8 @@ const char login_html[] PROGMEM = R"rawliteral(
             <a class="tmblreboot" href="/reboot"
                 onclick="return confirm('Device akan direstart dalam 3 detik..');">Reboot Device&nbsp;&#8634;</a>
             <hr>
-            <h6>%s</h6>
+            <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
+            </h6>
         </div>
     </div>
 
@@ -159,25 +186,27 @@ const char selesai_html[] PROGMEM = R"rawliteral(
         body {
             font-family: 'Courier New', Courier, monospace;
             margin: 0;
-            height: 90vh;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #d5f2d6;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
         }
 
         .container {
             margin: 10%;
             padding: 5px;
             border-radius: 10px;
-            background-color: #555;
-            box-shadow: #555 5px 7px 10px;
+            background-color: #ffffff;
+            box-shadow: #363636 5px 7px 10px;
         }
 
         .content {
             padding: 20px;
             border-radius: 10px;
-            background-color: #eee;
+            background-color: #363636;
+            color: #ffffff;
+            box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
         }
 
         h2 {
@@ -186,21 +215,43 @@ const char selesai_html[] PROGMEM = R"rawliteral(
         }
 
         p {
-            text-align: justify;
+            text-align: center;
+        }
+
+        .tulisan {
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+            color: gray;
+        }
+
+        .credit-foot {
+            font-size: 12px;
+            text-align: center;
         }
     </style>
     <div class="container">
         <div class="content">
-            <h2>SiAPP Config</h2>
-            <p>
-                Device telah di-restart, SiAP digunakan dengan pengaturan terbaru. <br>
-                Periksa apakah KOnfigurasi Device telah berkerja sesuai dengan yang diharapkan. <br><br>
-                Ulangi Konfigurasi dengan menekan tombol `SET` selama 10 detik (10 kali beep) untuk masuk ke mode Akses Point (AP).
+            <h2>𝕊𝕚𝔸ℙℙ</h2>
+            <hr>
+            <p class="tulisan">
+                Device telah di-restart.<br><br>
+                mode Acccess Poin telah dinon aktifkan, Anda sudah dapat meninggalkan halaman ini dan kembali ke Device 𝕊𝕚𝔸ℙℙ.<br><br>
+                Konfigurasi ulang bisa dilakukan dengan menekan tombol `SET` selama 5 detik untuk masuk ke mode Akses Point (AP).
                 <br><br>
                 Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
-                <hr>
-                <b>butoCakil</b> on GitHub - <i>bennysurahman@gmail.com</i>
             </p>
+            <hr>
+            <div class="credit-foot">
+                <a href="mailto:bennysurahman@gmail.com"><i>bennysurahman@gmail.com</i></a> -
+                <a href="https://github.com/butoCakil">
+                    <b style="color: rgb(0, 110, 253);">butoCakil</b>
+                </a>
+                on GitHub - &copy; 2023-2024
+                </h6>
+            </div>
         </div>
     </div>
 </body>

@@ -14,75 +14,141 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        background: linear-gradient(to top, rgb(0, 162, 255), aqua);
     }
 
     .container {
         border-radius: 10px;
         margin: 5%;
         text-align: center;
-        background-color: #746c6c;
+        background-color: #ffffff;
         padding: 5px;
+        box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
     }
-    
+
     .content {
         border-radius: 10px;
-        padding: 5px;
-        background-color: #f0f0f0;
+        padding: 20px;
+        background-color: #363636;
+        color: #ffffff;
+        box-shadow: rgba(31, 31, 31, 0.753) 3px 3px 5px;
     }
 
     span {
         font-weight: bold;
     }
+
+    h2,
+    h3,
+    p {
+        margin: 0;
+    }
+
+    .tulisan {
+        font-size: 14px;
+    }
+
+    a {
+        text-decoration: none;
+        color: gray;
+    }
+
+    .credit-foot {
+        font-size: 12px;
+    }
+
+    .info-saved {
+        background-color: rgb(32, 32, 32);
+        max-width: 80%;
+        margin-top: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: rgb(27, 27, 27) 1px 1px 5px;
+    }
+
+    #theme {
+        position: absolute;
+        right: 0;
+        top: 0;
+        margin-top: 10%;
+        background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+        border: none;
+        box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+        padding: 10px;
+        border-radius: 10px 0px 0px 10px;
+    }
+
+    .light-mode {
+        background-color: #ebebeb;
+        color: #000000;
+    }
+
+    .light-mode-conrainer {
+        background-color: #787878;
+        color: #ffffff;
+    }
+
+    .light-mode-infosaved {
+        background-color: rgb(255, 255, 255);
+        box-shadow: rgb(203, 203, 203) 1px 1px 5px;
+    }
 </style>
 
 <body>
-    <div class="container">
-        <div class="content">
+    <div class="container" id="container">
+        <div class="content" id="content">
+            <h2>𝕊𝕚𝔸ℙℙ</h2>
+            <hr>
             <h3>Pengaturan Berhasil Disimpan!</h3>
+            <div class="info-saved" id="info-saved">
+                <p>SSID: <br><span id="ssidNew">%SSID_NEW%</span></p>
+                <p>Password: <br><span id="passNew">%PASS_NEW%</span></p>
+                <p>No Device: <br><span id="nodevice">%NODEVICE%</span></p>
+                <p>Host: <br><span id="host">%HOST%</span></p>
+            </div>
             <hr>
-            <p>SSID: <span id="ssidNew"></span></p>
-            <p>Password: <span id="passNew"></span></p>
-            <p>Hotspot: <span id="hotspot"></span></p>
-            <p>No Device: <span id="nodevice"></span></p>
-            <p>Host: <span id="host"></span></p>
-            <hr>
-            <p>
-                Device telah di-restart, SiAP digunakan dengan pengaturan terbaru. <br>
-                Periksa apakah Konfigurasi Device telah berkerja sesuai dengan yang diharapkan. <br><br>
-                Ulangi Konfigurasi dengan menekan tombol `SET` selama 10 detik (10 kali beep) untuk masuk ke mode Akses
+            <p class="tulisan">
+                Device telah di-restart, 𝕊𝕚𝔸ℙℙ digunakan dengan pengaturan terbaru.<br><br>
+                Mode Acccess Poin (AP) telah dinon-aktifkan, Anda sudah dapat meninggalkan halaman ini dan kembali ke
+                Device
+                𝕊𝕚𝔸ℙℙ.<br><br>
+                Konfigurasi ulang bisa dilakukan dengan menekan tombol `SET` selama 10 detik (10 kali beep) untuk masuk
+                ke mode Akses
                 Point (AP).
                 <br><br>
                 Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
-                <hr>
-                <b>butoCakil</b> on GitHub - <i>bennysurahman@gmail.com</i>
             </p>
+            <hr>
+            <div class="credit-foot">
+                <a href="mailto:bennysurahman@gmail.com"><i>bennysurahman@gmail.com</i></a> -
+                <a href="https://github.com/butoCakil">
+                    <b style="color: rgb(0, 110, 253);">butoCakil</b>
+                </a>
+                on GitHub - &copy; 2023-2024
+                </h6>
+            </div>
+            <button id="theme" onclick="toggleTheme()">Light</button>
         </div>
     </div>
 
     <script>
-        function getParameterByName(name, url) {
-            if (!url) url = window.location.href;
-            name = name.replace(/[\[\]]/g, "\\$&");
-            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-                results = regex.exec(url);
-            if (!results) return null;
-            if (!results[2]) return '';
-            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var infosaved = document.getElementById('info-saved');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+            infosaved.classList.toggle('light-mode-infosaved');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
+            }
         }
-
-        var ssidNew = getParameterByName('ssidNew');
-        var passNew = getParameterByName('passNew');
-        var hotspot = getParameterByName('hotspot');
-        var nodevice = getParameterByName('nodevice');
-        var host = getParameterByName('host');
-
-        window.onload = function () {
-            document.getElementById('ssidNew').textContent = ssidNew;
-            document.getElementById('passNew').textContent = passNew;
-            document.getElementById('hotspot').textContent = hotspot;
-            document.getElementById('nodevice').textContent = nodevice;
-            document.getElementById('host').textContent = host;
-        };
     </script>
 </body>
 

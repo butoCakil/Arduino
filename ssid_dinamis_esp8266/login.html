@@ -16,29 +16,43 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #d5f2d6;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
         }
 
         .container {
             padding: 5px;
             border-radius: 10px;
-            background-color: #555;
-            box-shadow: #555 5px 7px 10px;
+            /* background-color: #555; */
+            background-color: #dfdfdf;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+        }
+
+        .light-mode-conrainer {
+            background-color: #787878;
+            color: #ffffff;
         }
 
         .content {
             padding: 20px;
             border-radius: 10px;
-            background-color: #eee;
+            background-color: #363636;
+            color: #ffffff;
+            /* background: linear-gradient(to top, rgb(255, 255, 255), rgb(255, 255, 255)); */
+            box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
         }
 
-        h2 {
+        .light-mode {
+             background-color: #ebebeb;
+            color: #000000;
+        }
+
+        h2,
+        h6 {
             text-align: center;
             margin: 0;
         }
 
         input[type=text],
-        [type=password],
         select {
             width: 100%;
             padding: 12px 20px;
@@ -46,6 +60,16 @@
             display: inline-block;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        #password {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
             box-sizing: border-box;
         }
 
@@ -58,52 +82,79 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
         }
 
         input[type=submit]:hover {
             background-color: #45A049;
         }
 
+        a {
+            text-decoration: none;
+            color: gray;
+            text-shadow: rgba(51, 27, 27, 0.753) 2px 2px 10px;
+        }
+
         .tmblreboot {
             display: flex;
             align-items: center;
             justify-content: center;
-            text-decoration: none;
             margin-top: 10px;
-            color: red;
+            color: rgb(243, 11, 11);
+        }
+
+        .tmblreboot:hover {
+            font-weight: bold;
         }
 
         span {
-            background-color: #cccccc;
+            background-color: #ffffff;
             padding: 5px;
             color: aliceblue;
-            border-radius: 5px;
-            margin: auto 10px;
-            height: 30px;
-            box-shadow: #4d4242 1px 1px 3px;
+            border-radius: 0 5px 5px 0;
+            margin: auto auto;
+            height: 31px;
+            /* box-shadow: rgba(255, 255, 255, 0.753) 2px 2px 3px; */
         }
 
         span:hover {
             cursor: pointer;
+            box-shadow: #a28787 1px 1px 3px;
         }
 
         .inputPass {
             display: flex;
         }
+
+        #theme {
+            position: absolute;
+            right: 0;
+            top: 0;
+            margin-top: 10%;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+            border: none;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+            padding: 10px;
+            border-radius: 10px 0px 0px 10px;
+        }
     </style>
-    <div class="container">
-        <div class="content">
-            <h2>SiAPP Config</h2>
+    <div class="container" id="container">
+        <div class="content" id="content">
+            <h2>𝕊𝕚𝔸ℙℙ</h2>
+            <h6>Config</h6>
+            <hr>
             <h2>Sign in</h2>
+            <br>
             <form action="/setting" method="post">
+                <input type="hidden" name="idchip" value="%s">
                 <div class="field-wrapper">
                     <label>username</label>
-                    <input type="text" name="username" placeholder="username">
+                    <input type="text" name="username" placeholder="username" required>
                 </div>
                 <div class="field-wrapper">
                     <label>password</label>
                     <div class="inputPass">
-                        <input type="password" id="password" name="password" placeholder="password">
+                        <input type="password" id="password" name="password" placeholder="password" required>
                         <span id="togglePassword" onclick="togglePassword()">
                             🙈
                         </span>
@@ -117,6 +168,11 @@
 
             <a class="tmblreboot" href="/reboot"
                 onclick="return confirm('Device akan direstart dalam 3 detik..');">Reboot Device&nbsp;&#8634;</a>
+            <hr>
+            <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
+            </h6>
+            <button id="theme" onclick="toggleTheme()">Light</button>
+
         </div>
     </div>
 
@@ -131,6 +187,20 @@
             } else {
                 passwordInput.type = 'password';
                 toggleIcon.innerHTML = '🙈';
+            }
+        }
+
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
             }
         }
     </script>

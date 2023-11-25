@@ -23,11 +23,12 @@ const char error_html[] PROGMEM = R"rawliteral(
         body {
             font-family: 'Courier New', Courier, monospace;
             margin: 0;
-            height: 90vh;
+            padding: 0;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #d5f2d6;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
             text-align: center;
         }
 
@@ -37,11 +38,22 @@ const char error_html[] PROGMEM = R"rawliteral(
             word-wrap: break-word;
         }
 
+        h1{
+            font-size: 48px;
+        }
+
         a {
             text-decoration: none;
-            background-color: aliceblue;
+            background-color: #31a037;
             padding: 5px;
             border-radius: 5px;
+            box-shadow: darkcyan 2px 2px 10px;
+            color: rgb(255, 255, 255);
+            border: white 2px solid;
+        }
+        
+        a:hover {
+            background-color: #15701a;
             box-shadow: darkcyan 1px 1px 5px;
         }
     </style>

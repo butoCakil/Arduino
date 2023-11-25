@@ -229,6 +229,7 @@ void handleForm() {
     formattedHtml.replace("%HOST%", hostNew);
     server.send(200, "text/html", formattedHtml);
     startTimeBootLoad = millis();
+    buzz(2);
     bootLoad("Menyimpan Config..");
     delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
 
@@ -248,10 +249,12 @@ void handleForm() {
     if (WiFi.status() != WL_CONNECTED) {
       // Jika tidak terkoneksi dalam 30 detik,
       // tampilkan wifi tidak dapat terhubung
+      buzz(3);
       modeAPaktif = true;
       displayIconStatusText(ssid, "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
     } else {
+      buzz(2);
       modeAPaktif = false;
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
