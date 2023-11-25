@@ -86,7 +86,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
         }
 
-        .container form {
+        .content {
             background-color: #363636;
             color: #ffffff;
             box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
@@ -105,47 +105,74 @@ const char index_html[] PROGMEM = R"rawliteral(
             border-radius: 0 5px 5px 0;
             margin: auto auto;
             height: 31px;
-            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 3px;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 5px;
         }
 
         span:hover {
             cursor: pointer;
             box-shadow: #a28787 1px 1px 3px;
         }
+
+        #theme {
+            position: absolute;
+            right: 0;
+            top: 0;
+            margin-top: 10%;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+            border: none;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+            padding: 10px;
+            border-radius: 10px 0px 0px 10px;
+        }
+
+        .light-mode {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .light-mode-conrainer {
+            background-color: #787878;
+            color: #ffffff;
+        }
     </style>
 
 
-    <div class="container">
-        <form action="/action_page" method="post">
-            <h2>𝕊𝕚𝔸ℙℙ</h2>
-            <hr>
-            <h3>Konfigurasi Device</h3>
-            <br><br>
-            <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssidNew" value="%SSID_NEW%" placeholder="SSID WiFi Anda" required>
+    <div class="container" id="container">
+        <div class="content" id="content">
+            <form action="/action_page" method="post">
+                <h2>𝕊𝕚𝔸ℙℙ</h2>
+                <hr>
+                <h3>Konfigurasi Device</h3>
+                <br><br>
+                <label for="ssid">SSID</label>
+                <input type="text" id="ssid" name="ssidNew" value="%SSID_NEW%" placeholder="SSID WiFi Anda" required>
 
-            <label for="password">Password</label>
-            <div class="inputPass">
-                <input type="password" id="password" name="passNew" value="%PASS_NEW%"
-                    placeholder="Kosongkan jika tanpa password">
-                <span id="togglePassword" onclick="togglePassword()">
-                    🙈
-                </span>
-            </div>
+                <label for="password">Password</label>
+                <div class="inputPass">
+                    <input type="password" id="password" name="passNew" value="%PASS_NEW%"
+                        placeholder="Kosongkan jika tanpa password">
+                    <span id="togglePassword" onclick="togglePassword()">
+                        🙈
+                    </span>
+                </div>
 
-            <label for="nodevice">Nomor Device</label>
-            <input type="text" id="nodevice" name="nodevice" value="%NODEVICE%" placeholder="Nomor yang telah terdaftar"
-                required>
+                <label for="nodevice">Nomor Device</label>
+                <input type="text" id="nodevice" name="nodevice" value="%NODEVICE%"
+                    placeholder="Nomor yang telah terdaftar" required>
 
-            <label for="host">HOST</label>
-            <input type="text" id="host" name="host" value="%HOST%" placeholder="Alamat Host" required>
+                <label for="host">HOST</label>
+                <input type="text" id="host" name="host" value="%HOST%" placeholder="Alamat Host" required>
 
-            <input type="submit" value="Simpan">
+                <input type="submit" value="Simpan">
 
-            <hr>
-            <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
-            </h6>
-        </form>
+                <hr>
+                <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
+                </h6>
+            </form>
+
+            <button id="theme" onclick="toggleTheme()">Light</button>
+
+        </div>
     </div>
 
     <script>
@@ -159,6 +186,20 @@ const char index_html[] PROGMEM = R"rawliteral(
             } else {
                 passwordInput.type = 'password';
                 toggleIcon.innerHTML = '🙈';
+            }
+        }
+
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
             }
         }
     </script>
@@ -236,15 +277,42 @@ const char sukses_html[] PROGMEM = R"rawliteral(
         border-radius: 10px;
         box-shadow: rgb(27, 27, 27) 1px 1px 5px;
     }
+
+    #theme {
+        position: absolute;
+        right: 0;
+        top: 0;
+        margin-top: 10%;
+        background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+        border: none;
+        box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+        padding: 10px;
+        border-radius: 10px 0px 0px 10px;
+    }
+
+    .light-mode {
+        background-color: #ebebeb;
+        color: #000000;
+    }
+
+    .light-mode-conrainer {
+        background-color: #787878;
+        color: #ffffff;
+    }
+
+    .light-mode-infosaved {
+        background-color: rgb(255, 255, 255);
+        box-shadow: rgb(203, 203, 203) 1px 1px 5px;
+    }
 </style>
 
 <body>
-    <div class="container">
-        <div class="content">
+    <div class="container" id="container">
+        <div class="content" id="content">
             <h2>𝕊𝕚𝔸ℙℙ</h2>
             <hr>
             <h3>Pengaturan Berhasil Disimpan!</h3>
-            <div class="info-saved">
+            <div class="info-saved" id="info-saved">
                 <p>SSID: <br><span id="ssidNew">%SSID_NEW%</span></p>
                 <p>Password: <br><span id="passNew">%PASS_NEW%</span></p>
                 <p>No Device: <br><span id="nodevice">%NODEVICE%</span></p>
@@ -256,9 +324,7 @@ const char sukses_html[] PROGMEM = R"rawliteral(
                 Mode Acccess Poin (AP) telah dinon-aktifkan, Anda sudah dapat meninggalkan halaman ini dan kembali ke
                 Device
                 𝕊𝕚𝔸ℙℙ.<br><br>
-                Konfigurasi ulang bisa dilakukan dengan menekan tombol `SET` selama 5 detik untuk masuk
-                ke mode Akses
-                Point (AP).
+                Konfigurasi ulang bisa dilakukan dengan menekan tombol `SET` selama 5 detik untuk masuk ke mode Akses Point (AP).
                 <br><br>
                 Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
             </p>
@@ -271,8 +337,27 @@ const char sukses_html[] PROGMEM = R"rawliteral(
                 on GitHub - &copy; 2023-2024
                 </h6>
             </div>
+            <button id="theme" onclick="toggleTheme()">Light</button>
         </div>
     </div>
+
+    <script>
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var infosaved = document.getElementById('info-saved');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+            infosaved.classList.toggle('light-mode-infosaved');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
+            }
+        }
+    </script>
 </body>
 
 </html>

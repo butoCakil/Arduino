@@ -24,8 +24,13 @@ const char login_html[] PROGMEM = R"rawliteral(
             padding: 5px;
             border-radius: 10px;
             /* background-color: #555; */
-            background-color: #ffffff;
+            background-color: #dfdfdf;
             box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+        }
+
+        .light-mode-conrainer {
+            background-color: #787878;
+            color: #ffffff;
         }
 
         .content {
@@ -33,7 +38,13 @@ const char login_html[] PROGMEM = R"rawliteral(
             border-radius: 10px;
             background-color: #363636;
             color: #ffffff;
+            /* background: linear-gradient(to top, rgb(255, 255, 255), rgb(255, 255, 255)); */
             box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
+        }
+
+        .light-mode {
+             background-color: #ebebeb;
+            color: #000000;
         }
 
         h2,
@@ -115,9 +126,21 @@ const char login_html[] PROGMEM = R"rawliteral(
         .inputPass {
             display: flex;
         }
+
+        #theme {
+            position: absolute;
+            right: 0;
+            top: 0;
+            margin-top: 10%;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+            border: none;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+            padding: 10px;
+            border-radius: 10px 0px 0px 10px;
+        }
     </style>
-    <div class="container">
-        <div class="content">
+    <div class="container" id="container">
+        <div class="content" id="content">
             <h2>𝕊𝕚𝔸ℙℙ</h2>
             <h6>Config</h6>
             <hr>
@@ -149,6 +172,8 @@ const char login_html[] PROGMEM = R"rawliteral(
             <hr>
             <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
             </h6>
+            <button id="theme" onclick="toggleTheme()">Light</button>
+
         </div>
     </div>
 
@@ -165,6 +190,20 @@ const char login_html[] PROGMEM = R"rawliteral(
                 toggleIcon.innerHTML = '🙈';
             }
         }
+
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
+            }
+        }
     </script>
 </body>
 
@@ -178,7 +217,7 @@ const char selesai_html[] PROGMEM = R"rawliteral(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Config SiaPP</title>
+    <title>Info Config SiaPP</title>
 </head>
 
 <body>
@@ -231,14 +270,37 @@ const char selesai_html[] PROGMEM = R"rawliteral(
             font-size: 12px;
             text-align: center;
         }
+
+        #theme {
+            position: absolute;
+            right: 0;
+            top: 0;
+            margin-top: 10%;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+            border: none;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+            padding: 10px;
+            border-radius: 10px 0px 0px 10px;
+        }
+
+        .light-mode {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .light-mode-conrainer {
+            background-color: #787878;
+            color: #ffffff;
+        }
     </style>
-    <div class="container">
-        <div class="content">
+    <div class="container" id="container">
+        <div class="content" id="content">
             <h2>𝕊𝕚𝔸ℙℙ</h2>
             <hr>
             <p class="tulisan">
                 Device telah di-restart.<br><br>
-                mode Acccess Poin telah dinon aktifkan, Anda sudah dapat meninggalkan halaman ini dan kembali ke Device 𝕊𝕚𝔸ℙℙ.<br><br>
+                mode Acccess Poin telah dinon aktifkan, Anda sudah dapat meninggalkan halaman ini dan kembali ke Device
+                𝕊𝕚𝔸ℙℙ.<br><br>
                 Konfigurasi ulang bisa dilakukan dengan menekan tombol `SET` selama 5 detik untuk masuk ke mode Akses Point (AP).
                 <br><br>
                 Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
@@ -252,8 +314,26 @@ const char selesai_html[] PROGMEM = R"rawliteral(
                 on GitHub - &copy; 2023-2024
                 </h6>
             </div>
+
+            <button id="theme" onclick="toggleTheme()">Light</button>
         </div>
     </div>
+
+    <script>
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-conrainer');
+
+            if (theme.textContent === "Dark") {
+                theme.textContent = "Light";
+            } else {
+                theme.textContent = "Dark";
+            }
+        }
+    </script>
 </body>
 
 </html>
