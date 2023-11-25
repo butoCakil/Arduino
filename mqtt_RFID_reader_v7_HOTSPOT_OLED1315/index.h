@@ -12,6 +12,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     <style>
         body {
             font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #d5f2d6;
         }
 
         h3 {
@@ -46,39 +52,77 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color: #45A049;
         }
 
-        div {
-            border-radius: 5px;
+        .container {
+            border-radius: 10px;
+            background-color: #4d4242;
+            padding: 5px;
+            margin: 10%;
+        }
+
+        .container form {
             background-color: #f2f2f2;
-            padding: 20px
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .inputPass {
+            display: flex;
+        }
+
+        span {
+            background-color: #cccccc;
+            padding: 5px;
+            color: aliceblue;
+            border-radius: 5px;
+            margin: auto 10px;
+            height: 30px;
+            box-shadow: #4d4242 1px 1px 3px;
+        }
+
+        span:hover{
+            cursor: pointer;
         }
     </style>
 
-    <h3>Konfigurasi SiAPP Device Scanner ID Card</h3>
 
-    <div>
-        <form action="/action_page">
-            <label for="hotspot">Mode Hotspot Portal</label>
-            <select name="hotspot" id="hotspot">
-                <option value="">Tidak</option>
-                <option value="hotspot">Ya</option>
-            </select>
-
+    <div class="container">
+        <form action="/action_page" method="post">
+            <h3>Konfigurasi SiAPP Device Scanner ID Card %s</h3>
             <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda" required>
+            <input type="text" id="ssid" name="ssidNew" value="%SSID_NEW%" placeholder="SSID WiFi Anda" required>
 
             <label for="password">Password</label>
-            <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tidak menggunakan password">
+            <div class="inputPass">
+                <input type="password" id="password" name="passNew" value="%PASS_NEW%" placeholder="Kosongkan jika tanpa password">
+                <span id="togglePassword" onclick="togglePassword()">
+                    🙈
+                </span>
+            </div>
 
             <label for="nodevice">Nomor Device</label>
-            <input type="text" id="nodevice" name="nodevice"
-                placeholder="Nomor Device Harus diisi dengan nomor yang valid" required>
+            <input type="text" id="nodevice" name="nodevice" value="%NODEVICE%" placeholder="Nomor yang telah terdaftar" required>
 
             <label for="host">HOST</label>
-            <input type="password" id="host" name="host" value="172.16.80.123" placeholder="Alamat Host" required>
+            <input type="text" id="host" name="host" value="%HOST%" placeholder="Alamat Host" required>
 
             <input type="submit" value="Simpan">
         </form>
     </div>
+
+    <script>
+        function togglePassword() {
+            var passwordInput = document.getElementById('password');
+            var toggleIcon = document.getElementById('togglePassword');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.innerHTML = '🙉';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.innerHTML = '🙈';
+            }
+        }
+    </script>
 </body>
 
 </html>
@@ -90,10 +134,11 @@ const char sukses_html[] PROGMEM = R"rawliteral(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Save Config</title>
+    <title>Simpan Config | SiAPP</title>
 </head>
 <style>
     body {
+        font-family: 'Courier New', Courier, monospace;
         margin: 0;
         height: 100vh;
         display: flex;
@@ -101,52 +146,47 @@ const char sukses_html[] PROGMEM = R"rawliteral(
         justify-content: center;
     }
 
-    div {
+    .container {
+        border-radius: 10px;
+        margin: 5%;
         text-align: center;
+        background-color: #746c6c;
+        padding: 5px;
+    }
+    
+    .content {
+        border-radius: 10px;
+        padding: 5px;
         background-color: #f0f0f0;
-        padding: 20px;
+    }
+
+    span {
+        font-weight: bold;
     }
 </style>
 
-<head>
-    <title>Berhasil | SiAPP</title>
-</head>
-
 <body>
-    <div>
-        <h1>Pengaturan Berhasil Disimpan!</h1>
-        <p>SSID: <span id="ssidNew"></span></p>
-        <p>Password: <span id="passNew"></span></p>
-        <p>Hotspot: <span id="hotspot"></span></p>
-        <p>No Device: <span id="nodevice"></span></p>
-        <p>Host: <span id="host"></span></p>
+    <div class="container">
+        <div class="content">
+            <h3>Pengaturan Berhasil Disimpan!</h3>
+            <hr>
+            <p>SSID: <span id="ssidNew">%SSID_NEW%</span></p>
+            <p>Password: <span id="passNew">%PASS_NEW%</span></p>
+            <p>No Device: <span id="nodevice">%NODEVICE%</span></p>
+            <p>Host: <span id="host">%HOST%</span></p>
+            <hr>
+            <p>
+                Device telah di-restart, SiAP digunakan dengan pengaturan terbaru. <br>
+                Periksa apakah Konfigurasi Device telah berkerja sesuai dengan yang diharapkan. <br><br>
+                Ulangi Konfigurasi dengan menekan tombol `SET` selama 10 detik (10 kali beep) untuk masuk ke mode Akses
+                Point (AP).
+                <br><br>
+                Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
+                <hr>
+                <b>butoCakil</b> on GitHub - <i>bennysurahman@gmail.com</i>
+            </p>
+        </div>
     </div>
-
-    <script>
-        function getParameterByName(name, url) {
-            if (!url) url = window.location.href;
-            name = name.replace(/[\[\]]/g, "\\$&");
-            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-                results = regex.exec(url);
-            if (!results) return null;
-            if (!results[2]) return '';
-            return decodeURIComponent(results[2].replace(/\+/g, " "));
-        }
-
-        var ssidNew = getParameterByName('ssidNew');
-        var passNew = getParameterByName('passNew');
-        var hotspot = getParameterByName('hotspot');
-        var nodevice = getParameterByName('nodevice');
-        var host = getParameterByName('host');
-
-        window.onload = function () {
-            document.getElementById('ssidNew').textContent = ssidNew;
-            document.getElementById('passNew').textContent = passNew;
-            document.getElementById('hotspot').textContent = hotspot;
-            document.getElementById('nodevice').textContent = nodevice;
-            document.getElementById('host').textContent = host;
-        };
-    </script>
 </body>
 
 </html>

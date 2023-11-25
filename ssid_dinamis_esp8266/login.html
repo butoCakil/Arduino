@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SiAPP Config</title>
+    <title>Login Config SiaPP</title>
 </head>
 
 <body>
@@ -19,9 +19,22 @@
             background-color: #d5f2d6;
         }
 
-        h3 {
+        .container {
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #555;
+            box-shadow: #555 5px 7px 10px;
+        }
+
+        .content {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #eee;
+        }
+
+        h2 {
             text-align: center;
-            font-weight: bold;
+            margin: 0;
         }
 
         input[type=text],
@@ -51,21 +64,13 @@
             background-color: #45A049;
         }
 
-        .container {
-            border-radius: 10px;
-            background-color: #4d4242;
-            padding: 5px;
-            margin: 10%;
-        }
-
-        .container form {
-            background-color: #f2f2f2;
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        .inputPass {
+        .tmblreboot {
             display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            margin-top: 10px;
+            color: red;
         }
 
         span {
@@ -78,40 +83,41 @@
             box-shadow: #4d4242 1px 1px 3px;
         }
 
-        span:hover{
+        span:hover {
             cursor: pointer;
         }
+
+        .inputPass {
+            display: flex;
+        }
     </style>
-
-
     <div class="container">
-        <form action="/action_page">
-            <h3>Konfigurasi SiAPP Device Scanner ID Card</h3>
-            <label for="hotspot">Mode Hotspot Portal</label>
-            <select name="hotspot" id="hotspot">
-                <option value="">Tidak</option>
-                <option value="hotspot">Ya</option>
-            </select>
+        <div class="content">
+            <h2>SiAPP Config</h2>
+            <h2>Sign in</h2>
+            <form action="/setting" method="post">
+                <div class="field-wrapper">
+                    <label>username</label>
+                    <input type="text" name="username" placeholder="username">
+                </div>
+                <div class="field-wrapper">
+                    <label>password</label>
+                    <div class="inputPass">
+                        <input type="password" id="password" name="password" placeholder="password">
+                        <span id="togglePassword" onclick="togglePassword()">
+                            🙈
+                        </span>
+                    </div>
+                </div>
 
-            <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssidNew" placeholder="SSID WiFi Anda" required>
+                <div class="field-wrapper">
+                    <input type="submit" value="Login">
+                </div>
+            </form>
 
-            <label for="password">Password</label>
-            <div class="inputPass">
-                <input type="password" id="password" name="passNew" placeholder="Kosongkan jika tanpa password">
-                <span id="togglePassword" onclick="togglePassword()">
-                    🙈
-                </span>
-            </div>
-
-            <label for="nodevice">Nomor Device</label>
-            <input type="text" id="nodevice" name="nodevice" placeholder="Nomor yang telah terdaftar" required>
-
-            <label for="host">HOST</label>
-            <input type="text" id="host" name="host" value="172.16.80.123" placeholder="Alamat Host" required>
-
-            <input type="submit" value="Simpan">
-        </form>
+            <a class="tmblreboot" href="/reboot"
+                onclick="return confirm('Device akan direstart dalam 3 detik..');">Reboot Device&nbsp;&#8634;</a>
+        </div>
     </div>
 
     <script>

@@ -1,0 +1,209 @@
+const char login_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Config SiaPP</title>
+</head>
+
+<body>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #d5f2d6;
+        }
+
+        .container {
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #555;
+            box-shadow: #555 5px 7px 10px;
+        }
+
+        .content {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #eee;
+        }
+
+        h2, 
+        h6 {
+            text-align: center;
+            margin: 0;
+        }
+
+        input[type=text],
+        [type=password],
+        select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type=submit] {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type=submit]:hover {
+            background-color: #45A049;
+        }
+
+        .tmblreboot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            margin-top: 10px;
+            color: red;
+        }
+
+        span {
+            background-color: #cccccc;
+            padding: 5px;
+            color: aliceblue;
+            border-radius: 5px;
+            margin: auto 10px;
+            height: 30px;
+            box-shadow: #4d4242 1px 1px 3px;
+        }
+
+        span:hover {
+            cursor: pointer;
+        }
+
+        .inputPass {
+            display: flex;
+        }
+    </style>
+    <div class="container">
+        <div class="content">
+            <h2>SiAPP Config</h2>
+            <h2>Sign in</h2>
+            <form action="/setting" method="post">
+                <input type="hidden" name="idchip" value="%s">
+                <div class="field-wrapper">
+                    <label>username</label>
+                    <input type="text" name="username" placeholder="username" required>
+                </div>
+                <div class="field-wrapper">
+                    <label>password</label>
+                    <div class="inputPass">
+                        <input type="password" id="password" name="password" placeholder="password" required>
+                        <span id="togglePassword" onclick="togglePassword()">
+                            🙈
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field-wrapper">
+                    <input type="submit" value="Login">
+                </div>
+            </form>
+
+            <a class="tmblreboot" href="/reboot"
+                onclick="return confirm('Device akan direstart dalam 3 detik..');">Reboot Device&nbsp;&#8634;</a>
+            <hr>
+            <h6>%s</h6>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            var passwordInput = document.getElementById('password');
+            var toggleIcon = document.getElementById('togglePassword');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.innerHTML = '🙉';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.innerHTML = '🙈';
+            }
+        }
+    </script>
+</body>
+
+</html>
+)rawliteral";
+
+const char selesai_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Config SiaPP</title>
+</head>
+
+<body>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #d5f2d6;
+        }
+
+        .container {
+            margin: 10%;
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #555;
+            box-shadow: #555 5px 7px 10px;
+        }
+
+        .content {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #eee;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 0;
+        }
+
+        p {
+            text-align: justify;
+        }
+    </style>
+    <div class="container">
+        <div class="content">
+            <h2>SiAPP Config</h2>
+            <p>
+                Device telah di-restart, SiAP digunakan dengan pengaturan terbaru. <br>
+                Periksa apakah KOnfigurasi Device telah berkerja sesuai dengan yang diharapkan. <br><br>
+                Ulangi Konfigurasi dengan menekan tombol `SET` selama 10 detik (10 kali beep) untuk masuk ke mode Akses Point (AP).
+                <br><br>
+                Hubungi Admin / Pengembang untuk informasi teknis lebih lanjut.
+                <hr>
+                <b>butoCakil</b> on GitHub - <i>bennysurahman@gmail.com</i>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
+)rawliteral";

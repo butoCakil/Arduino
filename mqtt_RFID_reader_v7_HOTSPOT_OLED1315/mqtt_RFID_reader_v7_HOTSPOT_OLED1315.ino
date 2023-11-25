@@ -20,6 +20,8 @@
 #endif
 
 #include "index.h"
+#include "login.h"
+#include "error.h"
 
 // Ganti true jika berhotspot tanpa password
 boolean modeHotspot = false;
@@ -30,7 +32,7 @@ char nodevice[20] = "2309G005";  // GERBANG / PRESENSI MASUK (max 20 characters)
 // char nodevice[20] = "2310IZ002";  // POS SATPAM (IJIN) (max 20 characters)
 // char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
 
-const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
+char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
 // const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
 
 const int mqtt_port = 1883;          // Port MQTT default
@@ -88,7 +90,8 @@ boolean tombolDitekan = false;
 const char* ssid = "SiAPP-Config";
 const char* password = "siap$bos";
 
-String ssidNew = "", passNew, hotspotNew, nodeviceNew, hostNew;
+String ssidNew = "", passNew, nodeviceNew, hostNew;
+String usernameLogin, passwordLogin;
 
 ESP8266WebServer server(80);
 
@@ -117,17 +120,79 @@ String readStringFromEEPROM(int startAddr) {
 }
 
 void handleRoot() {
-  server.send(200, "text/html", index_html);
+  String formattedHtml = String(login_html);
+  formattedHtml.replace("%s", chipID);
+  formattedHtml.replace("%c", "/");
+  server.send(200, "text/html", formattedHtml);
 }
 
 void handleNotFound() {
-  server.send(404, "text/plain", "404 Not Found");
+  String formattedHtml = String(error_html);
+  formattedHtml.replace("%s", "404 - Halaman Tidak ditemukan");
+  formattedHtml.replace("%c", "/");
+  server.send(404, "text/html", formattedHtml);
+}
+
+void handelLogin() {
+  boolean usernameOK = false;
+  boolean passwordOK = false;
+
+  usernameLogin = server.arg("username");
+  passwordLogin = server.arg("password");
+
+  if (usernameLogin == "siapconfig") {
+    usernameOK = true;
+  }
+
+  if (passwordLogin == "siap$bos") {
+    passwordOK = true;
+  }
+
+  if (usernameOK && passwordOK) {
+    String formattedHtml = String(index_html);
+    formattedHtml.replace("%s", chipID);
+    formattedHtml.replace("%c", "/");
+    formattedHtml.replace("%SSID_NEW%", ssidNew);
+    formattedHtml.replace("%PASS_NEW%", passNew);
+    formattedHtml.replace("%NODEVICE%", nodevice);
+    formattedHtml.replace("%HOST%", mqtt_server);
+
+    // Send the response
+    server.send(200, "text/html", formattedHtml);
+  } else if (!usernameOK && passwordOK) {
+    String formattedHtml = String(error_html);
+    formattedHtml.replace("%s", "Login Gagal - Username Login Salah!");
+    formattedHtml.replace("%c", "/");
+    server.send(404, "text/html", formattedHtml);
+  } else if (usernameOK && !passwordOK) {
+    String formattedHtml = String(error_html);
+    formattedHtml.replace("%s", "Login Gagal - Password Login Salah!");
+    formattedHtml.replace("%c", "/");
+    server.send(404, "text/html", formattedHtml);
+  } else if (usernameLogin == "" || passwordLogin == "") {
+    String formattedHtml = String(error_html);
+    formattedHtml.replace("%s", "Login Gagal - Login dulu ya..");
+    formattedHtml.replace("%c", "/");
+    server.send(404, "text/html", formattedHtml);
+  } else {
+    String formattedHtml = String(error_html);
+    formattedHtml.replace("%s", "Login Gagal - Username dan Password Login Salah!");
+    formattedHtml.replace("%c", "/");
+    server.send(404, "text/html", formattedHtml);
+  }
+}
+
+void handleReboot() {
+  server.send(200, "text/html", selesai_html);
+  buzzBasedOnMessage("400");
+  boot("Restart dalam 3 detik");
+  delay(2000);
+  ESP.restart();
 }
 
 void handleForm() {
   ssidNew = server.arg("ssidNew");
   passNew = server.arg("passNew");
-  hotspotNew = server.arg("hotspot");
   nodeviceNew = server.arg("nodevice");
   hostNew = server.arg("host");
 
@@ -136,53 +201,68 @@ void handleForm() {
   Serial.println(ssidNew);
   Serial.println("PASS: ");
   Serial.println(passNew);
-  Serial.println("HOTSPOT: ");
-  Serial.println(hotspotNew);
   Serial.println("nodevice: ");
   Serial.println(nodeviceNew);
   Serial.println("HOST: ");
   Serial.println(hostNew);
   Serial.println("");
 
-  // Save values to EEPROM
-  writeStringToEEPROM(0, ssidNew);
-  writeStringToEEPROM(64, passNew);
-  writeStringToEEPROM(128, hotspotNew);
-  writeStringToEEPROM(192, nodeviceNew);
-  writeStringToEEPROM(256, hostNew);
-
-  server.send(200, "text/html", sukses_html);
-  delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
-
-  WiFi.softAPdisconnect(true);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssidNew.c_str(), passNew.c_str());
-
-  // Tunggu sampai terhubung
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-    delay(1000);
-    Serial.print("i");
-    attempts++;
-  }
-
-  if (WiFi.status() != WL_CONNECTED) {
-    // Jika tidak terkoneksi dalam 30 detik, pindah ke mode Akses Poin
-
-    displayIconStatusText(ssid, "WiFi Gagal! Mulai AP..", epd_bitmap_x_3x);
-    delay(1000);
-    bukaAP("Tidak dapat terhubung ke WiFi. Memulai mode Akses Poin...");
+  // jangan menyimpan config kosong
+  if (ssidNew == "" && hostNew == "" && nodeviceNew == "") {
+    String formattedHtml = String(error_html);
+    formattedHtml.replace("%s", "GAGAL melakukan Konfigurasi");
+    formattedHtml.replace("%c", "/setting");
+    server.send(404, "text/html", formattedHtml);
   } else {
-    Serial.println("");
-    Serial.println("Terhubung Ke Jaringan");
-    displayIconStatusText(ssid, "Tersambung ke WiFi", epd_bitmap_check_3x);
+    // Save values to EEPROM
+    writeStringToEEPROM(0, ssidNew);
+    writeStringToEEPROM(64, passNew);
+    writeStringToEEPROM(192, nodeviceNew);
+    writeStringToEEPROM(256, hostNew);
 
-    delay(2000);
-    boot("Restart dalam 3 detik");
-    delay(2000);
-    buzzBasedOnMessage("400");
-    ESP.restart();
+
+    String formattedHtml = String(sukses_html);
+    formattedHtml.replace("%s", chipID);
+    formattedHtml.replace("%SSID_NEW%", ssidNew);
+    formattedHtml.replace("%PASS_NEW%", passNew);
+    formattedHtml.replace("%NODEVICE%", nodeviceNew);
+    formattedHtml.replace("%HOST%", hostNew);
+    server.send(200, "text/html", formattedHtml);
+    startTimeBootLoad = millis();
+    bootLoad("Menyimpan Config..");
+    delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
+
+    WiFi.softAPdisconnect(true);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssidNew.c_str(), passNew.c_str());
+
+    // Tunggu sampai terhubung
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+      delay(1000);
+      Serial.print("i");
+      attempts++;
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+      // Jika tidak terkoneksi dalam 30 detik,
+      // tampilkan wifi tidak dapat terhubung
+      modeAPaktif = true;
+      displayIconStatusText(ssid, "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
+      delay(1000);
+    } else {
+      modeAPaktif = false;
+      Serial.println("");
+      Serial.println("Terhubung Ke Jaringan");
+      displayIconStatusText(ssid, "berhasil konek ke WiFi", epd_bitmap_check_3x);
+
+      delay(2000);
+      boot("Restart dalam 3 detik");
+      delay(2000);
+      buzzBasedOnMessage("400");
+      ESP.restart();
+    }
   }
 }
 
@@ -240,6 +320,10 @@ void setup() {
 
   boot("booting...");
 
+  // Get ESP8266 Chip ID
+  int num = ESP.getChipId();
+  itoa(num, chipID, 10);
+
   // Congig WiFi
   // Jika ada nilai SSID dan password di EEPROM, coba terhubung ke WiFi
   if (ssidNew != "" && passNew != "") {
@@ -256,23 +340,22 @@ void setup() {
     }
 
     if (WiFi.status() == WL_CONNECTED) {
+      modeAPaktif = false;
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
 
       ssidNew = readStringFromEEPROM(0);
       passNew = readStringFromEEPROM(64);
-      hotspotNew = readStringFromEEPROM(128);
       nodeviceNew = readStringFromEEPROM(192);
       hostNew = readStringFromEEPROM(256);
 
       strcpy(nodevice, nodeviceNew.length() > 0 ? nodeviceNew.c_str() : nodevice);
+      strcpy(mqtt_server, hostNew.length() > 0 ? hostNew.c_str() : mqtt_server);
 
       Serial.print("SSID: ");
       Serial.println(ssidNew);
       Serial.print("pass: ");
       Serial.println(passNew);
-      Serial.print("hotspot: ");
-      Serial.println(hotspotNew);
       Serial.print("nodevice: ");
       Serial.println(nodeviceNew);
       Serial.print("host: ");
@@ -290,9 +373,7 @@ void setup() {
       Serial.println("MAC Address: ");
       Serial.println(WiFi.macAddress());
 
-      // Get ESP8266 Chip ID
-      int num = ESP.getChipId();
-      itoa(num, chipID, 10);
+      // tampilkan idchip
       Serial.println("Chip ID: ");
       Serial.println(chipID);
 
@@ -309,14 +390,16 @@ void setup() {
       while (!client.connected()) {
         bootLoad("Menyambungkan ke Server..");
         if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
+          modeAPaktif = false;
           if (aktifSerialMsg)
             Serial.println("Tersambung ke MQTT Broker");
 
           buzzBasedOnMessage("200");
         } else {
+          modeAPaktif = true;
           Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
 
-          displayIconStatusText("SIAPP", "Gagal konek Server!", epd_bitmap_x_3x);
+          displayIconStatusText("SIAPP: SERVER", "Gagal konek Server!", epd_bitmap_x_3x);
         }
       }
 
@@ -336,18 +419,21 @@ void setup() {
 
       Serial.println("Tempelkan kartu RFID..");
     } else {
-      displayIconStatusText(ssid, "WiFi Gagal! Mulai AP..", epd_bitmap_x_3x);
+      modeAPaktif = true;
+      displayIconStatusText(ssid, "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
-      bukaAP("Tidak dapat terhubung ke WiFi. Memulai mode Akses Poin...");
     }
   } else {
+    modeAPaktif = true;
     displayIconStatusText(ssid, "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
     delay(1000);
     bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
   }
 
   server.on("/", HTTP_GET, handleRoot);
-  server.on("/action_page", handleForm);
+  server.on("/setting", handelLogin);
+  server.on("/action_page", HTTP_POST, handleForm);
+  server.on("/reboot", handleReboot);
   server.onNotFound(handleNotFound);
 
   // pinMode(LED_PIN, OUTPUT);

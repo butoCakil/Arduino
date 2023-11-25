@@ -1,3 +1,4 @@
+#include "core_esp8266_features.h"
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer
 const char* buzzerCodes[] = {
   // error
@@ -622,7 +623,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         u8g2.setFont(u8g2_font_luBIS08_tf);
         u8g2.drawStr(32, 10, "WARNING:");
         u8g2.setDrawColor(1);
-        drawWrappedText("Device tidak terdaftar", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+        drawWrappedText("Device tidak sesuai", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
         // drawWrappedText("Data tidak direspon", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
@@ -643,6 +644,21 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
       drawWrappedText("Data tidak direspon server", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
       // drawWrappedText("Data tidak direspon server", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
       u8g2.sendBuffer();
+
+      delay(2000);
+
+      u8g2.clearBuffer();
+      iconBMP(2);
+      u8g2.drawBox(0, 0, screenWidth, 12);
+      u8g2.setDrawColor(0);
+      u8g2.setFont(u8g2_font_luBIS08_tf);
+      u8g2.drawStr(36, 10, "SERVER:");
+      u8g2.setDrawColor(1);
+      drawWrappedText("Pastikan no device ini Valid", 75, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      // drawWrappedText("Data tidak direspon server", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+      u8g2.sendBuffer();
+
+      delay(2000);
 
       pesanJSON = "502";
     }

@@ -1,0 +1,51 @@
+const char error_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERROR</title>
+</head>
+
+<body>
+    <div class="content">
+        <h1>Error</h1>
+        <div>
+            <p>%s</p>
+        </div>
+        <div>
+            <a href="%c">Kembali</a>
+        </div>
+    </div>
+
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #d5f2d6;
+            text-align: center;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            word-wrap: break-word;
+        }
+
+        a {
+            text-decoration: none;
+            background-color: aliceblue;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: darkcyan 1px 1px 5px;
+        }
+    </style>
+</body>
+
+</html>
+)rawliteral";
