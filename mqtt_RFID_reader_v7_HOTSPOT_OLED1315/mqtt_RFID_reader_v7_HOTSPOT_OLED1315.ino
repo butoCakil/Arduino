@@ -27,13 +27,9 @@
 boolean modeHotspot = false;
 
 // MQTT Broker Configuration
-char nodevice[20] = "2309G005";  // GERBANG / PRESENSI MASUK (max 20 characters)
-// char nodevice[20] = "2309MAS005";  // PEMBIASAAN MASJID (max 20 characters)
-// char nodevice[20] = "2310IZ002";  // POS SATPAM (IJIN) (max 20 characters)
-// char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
+char nodevice[20] = "2309G005";
 
-char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda
-// const char* mqtt_server = "10.16.0.102";  // Ganti dengan alamat IP broker MQTT Anda
+char* mqtt_server = "172.16.80.123";
 
 const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
