@@ -343,11 +343,9 @@ void setup() {
       ssidNew = readStringFromEEPROM(0);
       passNew = readStringFromEEPROM(64);
       nodeviceNew = readStringFromEEPROM(192);
-      // hostNew = readStringFromEEPROM(256);
       hostNew = readStringFromEEPROM(MAX_EEPROM_SIZE);
 
       strcpy(nodevice, nodeviceNew.length() > 0 ? nodeviceNew.c_str() : nodevice);
-      // strcpy(mqtt_server, hostNew.c_str());
 
       hostNew.toCharArray(mqtt_server, sizeof(mqtt_server));
 

@@ -51,8 +51,8 @@ boolean modeAPaktif = false;
 #define RST_PIN 0  // D3
 
 char IDTAG[20];
-char chipID[25];                       // Store ESP8266 Chip ID
-char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
+char chipID[25];
+char key[50] = "1234567890987654321";
 
 String receivedMessage = "";
 

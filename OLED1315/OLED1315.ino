@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <U8g2lib.h>
 
 #ifdef U8X8_HAVE_HW_SPI
@@ -17,9 +16,9 @@ void setup(void) {
 void loop(void) {
   u8g2.clearBuffer();                   // clear the internal memory
   u8g2.setFont(u8g2_font_luBIS08_tf);   // choose a suitable font
-  u8g2.drawStr(0,10,"Hello Seeed!");    // write something to the internal memory
-  u8g2.drawStr(0,30,"Hello Studio!");    // write something to the internal memory
-  u8g2.drawStr(0,50,"Hello World!");    // write something to the internal memory
+  u8g2.drawStr(0,10,"Hello Dab!");    // write something to the internal memory
+  u8g2.drawStr(0,30,"Hello Bos!");    // write something to the internal memory
+  u8g2.drawStr(0,50,"Hello Hai!");    // write something to the internal memory
   u8g2.sendBuffer();                    // transfer internal memory to the display
   delay(100);  
 }
