@@ -33,6 +33,14 @@
             text-decoration: none;
         }
 
+        h5 {
+            text-align: center;
+            font-size: 10px;
+            margin: 0;
+            color: rgb(0, 195, 255);
+            font-weight: 100;
+        }
+
         a {
             text-decoration: none;
             color: gray;
@@ -133,6 +141,60 @@
             background-color: #787878;
             color: #ffffff;
         }
+
+        .listssid {
+            background-color: #000000;
+            height: 15vh;
+            border-radius: 10px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border: #f1f1f1 solid 5px;
+            letter-spacing: 2px;
+            line-height: 16px;
+        }
+
+        .light-mode-listssid {
+            background-color: #ffffff;
+            border: #d4d4d4 solid 5px;
+        }
+
+        .listssid a {
+            color: rgb(80, 225, 70);
+            border-bottom: #adadad solid;
+        }
+
+        /* Atau, untuk menyembunyikan hanya scrollbar vertikal */
+        .listssid::-webkit-scrollbar {
+            width: 0.5em;
+            /* Sesuaikan lebar scrollbar sesuai keinginan Anda */
+        }
+
+        .listssid::-webkit-scrollbar-track {
+            background-color: #f1f1f1;
+            /* Atur warna latar belakang track scrollbar jika ingin menampilkannya */
+        }
+
+        .listssid::-webkit-scrollbar-thumb {
+            background-color: #888;
+            /* Atur warna thumb scrollbar */
+            border-radius: 4px;
+            /* Atur border radius thumb scrollbar */
+        }
+
+        #reload {
+            display: flex;
+            justify-content: end;
+            margin-bottom: 10px;
+            color: red;
+            font-weight: bolder;
+        }
+
+        #tmblssid1:hover{
+            cursor: pointer;
+            background-color: #363636;
+        }
     </style>
 
 
@@ -140,9 +202,17 @@
         <div class="content" id="content">
             <form action="/action_page" method="post">
                 <h2>𝕊𝕚𝔸ℙℙ</h2>
-                <hr>
                 <h3>Konfigurasi Device</h3>
-                <br><br>
+                <hr>
+                <h5>SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>
+                <div id="listssid" class="listssid">
+                    <a id="tmblssid1" onclick="changeSSID('wifi.ssid1')">wifi.ssid1 (wifi.rssi) (wifi.security)</a><br>
+                    <a id="tmblssid1" onclick="changeSSID('wifi.ssid2')">wifi.ssid2 (wifi.rssi) (wifi.security)</a><br>
+                    <a id="tmblssid1" onclick="changeSSID('wifi.ssid3')">wifi.ssid3 (wifi.rssi) (wifi.security)</a><br>
+                    <a id="tmblssid1" onclick="changeSSID('wifi.ssid4')">wifi.ssid4 (wifi.rssi) (wifi.security)</a><br>
+                    <a id="tmblssid1" onclick="changeSSID('wifi.ssid5')">wifi.ssid5 (wifi.rssi) (wifi.security)</a><br>
+                </div>
+                <br>
                 <label for="ssid">SSID</label>
                 <input type="text" id="ssid" name="ssidNew" value="%SSID_NEW%" placeholder="SSID WiFi Anda" required>
 
@@ -165,7 +235,7 @@
                 <input type="submit" value="Simpan">
 
                 <hr>
-                <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
+                <h6><a href="mailto:bennysurahman@gmail.com">%IDCHIP%</a> &copy; 2023-2024
                 </h6>
             </form>
 
@@ -191,15 +261,25 @@
         function toggleTheme() {
             var content = document.getElementById('content');
             var container = document.getElementById('container');
+            var listssid = document.getElementById('listssid');
             var theme = document.getElementById('theme');
             content.classList.toggle('light-mode');
             container.classList.toggle('light-mode-conrainer');
+            listssid.classList.toggle('light-mode-listssid');
 
             if (theme.textContent === "Dark") {
                 theme.textContent = "Light";
             } else {
                 theme.textContent = "Dark";
             }
+        }
+
+        function changeSSID(newSSID) {
+            // Mendapatkan elemen input dengan ID ssid
+            const ssidInput = document.getElementById('ssid');
+
+            // Mengganti nilai input dengan nilai baru
+            ssidInput.value = newSSID;
         }
     </script>
 </body>

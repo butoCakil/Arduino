@@ -1,4 +1,6 @@
 #include <WiFi.h>
+#include <WiFiScan.h>
+#include <vector>
 #include <ESPAsyncWebServer.h>
 #include "index.h"
 #include "login.h"
@@ -56,10 +58,18 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA,
 unsigned long startTimeBootLoad;
 
 int nom;
+int networks;
 
 int screenWidth = u8g2.getWidth();
 int screenHeight = u8g2.getHeight();
 
+struct WifiInfo {
+  String ssid;
+  int rssi;
+  String security;
+};
+
+std::vector<WifiInfo> wifiList;
 
 // 'check-3x', 24x24px
 const unsigned char epd_bitmap_check_3x[] = {
@@ -183,12 +193,96 @@ String readStringFromEEPROM(int startAddr) {
   return data.substring(0, data.length() - 1);
 }
 
+String injekHtml;
+
+void printWifiList() {
+  Serial.println("WiFi networks ditemukan:");
+  displayIconStatusText(ssidNew.c_str(), "WiFi network ditemukan..", epd_bitmap_check_3x);
+
+  injekHtml = "";
+  injekHtml = "<div id=\"listssid\" class=\"listssid\">";
+
+  int ii;
+  for (const auto& wifi : wifiList) {
+    Serial.print(ii);
+    Serial.print(". ");
+    Serial.print("SSID: ");
+    Serial.print(wifi.ssid);
+    Serial.print(", RSSI: ");
+    Serial.print(wifi.rssi);
+    Serial.print(" dBm, Security: ");
+    Serial.println(wifi.security);
+
+    injekHtml += "<a id=\"tmblssid1\" onclick=\"changeSSID('" + wifi.ssid + "')\">" + wifi.ssid + " (" + wifi.rssi + " dBm) " + wifi.security + "</a><br>";
+
+    ii++;
+  }
+
+  injekHtml += "</div>";
+}
+
+void findWifi() {
+  Serial.println("Mencari WiFi...");
+
+  wifiList.clear();
+
+  // Tunggu hingga pemindaian WiFi selesai
+  networks = WiFi.scanNetworks();
+
+  // Tambahkan informasi WiFi ke dalam vektor
+  for (int i = 0; i < networks; ++i) {
+    WifiInfo wifi;
+    wifi.ssid = WiFi.SSID(i);
+    wifi.rssi = WiFi.RSSI(i);
+    switch (WiFi.encryptionType(i)) {
+      case WIFI_AUTH_OPEN:
+        wifi.security = "Open";
+        break;
+      case WIFI_AUTH_WEP:
+        wifi.security = "WEP";
+        break;
+      case WIFI_AUTH_WPA_PSK:
+      case WIFI_AUTH_WPA2_PSK:
+      case WIFI_AUTH_WPA_WPA2_PSK:
+        wifi.security = "WPA/WPA2";
+        break;
+      default:
+        wifi.security = "Unknown";
+        break;
+    }
+    wifiList.push_back(wifi);
+  }
+
+  // Tampilkan hasil pemindaian
+  if (networks == 0) {
+    Serial.println("WiFi tidak ditemukan. REBOOT / Config Manual");
+    injekHtml = "WiFi tidak ditemukan. REBOOT / Config Manual";
+    displayIconStatusText(ssidNew.c_str(), "WiFi tidak ditemukan. REBOOT / Config Manual", epd_bitmap_x_3x);
+    delay(2000);
+  } else {
+    startTimeBootLoad = millis();
+    bootLoad("Memuat hasil Pencarian WiFi...");
+    printWifiList();
+  }
+}
+
+void searchingWifi() {
+  startTimeBootLoad = millis();
+  bootLoad("Mencari SSID WiFi Sekitar...");
+  findWifi();
+}
+
 void bukaAP(String _text) {
   modeAP = true;
   Serial.println("");
   Serial.println(_text);
   WiFi.disconnect();
   delay(1000);
+
+  searchingWifi();
+
+  startTimeBootLoad = millis();
+  bootLoad("Memulai Akses Poin...");
 
   String ssidString = "SiAPP-Config32-" + chipID;
   const char* ssid = ssidString.c_str();
@@ -213,6 +307,8 @@ void bukaAP(String _text) {
 }
 
 void handleReboot(AsyncWebServerRequest* request) {
+  startTimeBootLoad = millis();
+  bootLoad("Rebooting...");
   request->send_P(200, "text/html", selesai_html);
   delay(2000);
   ESP.restart();
@@ -242,6 +338,14 @@ void handleLogin(AsyncWebServerRequest* request) {
     formattedHtml.replace("%NODEVICE%", nodevice);
     formattedHtml.replace("%HOST%", hostNew);
 
+    if (networks == 0) {
+      formattedHtml.replace("%find%", "");
+      formattedHtml.replace("%IN%", "");
+    } else {
+      formattedHtml.replace("%find%", "<h5>SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>");
+      formattedHtml.replace("%IN%", injekHtml);
+    }
+
     // Send the response
     request->send_P(200, "text/html", formattedHtml.c_str());
   } else if (!usernameOK && passwordOK) {
@@ -268,6 +372,9 @@ void handleLogin(AsyncWebServerRequest* request) {
 }
 
 void handleForm(AsyncWebServerRequest* request) {
+  startTimeBootLoad = millis();
+  bootLoad("Menyimpan Config...");
+
   ssidNew = request->arg("ssidNew");
   passNew = request->arg("passNew");
   nodeviceNew = request->arg("nodevice");
@@ -284,17 +391,14 @@ void handleForm(AsyncWebServerRequest* request) {
   Serial.println(hostNew);
   Serial.println("");
 
-  writeStringToEEPROM(0, ssidNew);
-  writeStringToEEPROM(64, passNew);
-  writeStringToEEPROM(128, nodeviceNew);
-  writeStringToEEPROM(192, hostNew);
-
-
   // jangan menyimpan config kosong
   if (ssidNew == "" && hostNew == "" && nodeviceNew == "") {
     String formattedHtml = String(error_html);
     formattedHtml.replace("%s", "GAGAL melakukan Konfigurasi");
     formattedHtml.replace("%c", "/setting");
+
+    displayIconStatusText(ssidNew.c_str(), "Gagal simpan Config, Ulangi SET Config!", epd_bitmap_x_3x);
+
     request->send_P(404, "text/html", formattedHtml.c_str());
   } else {
     // Save values to EEPROM
@@ -312,16 +416,22 @@ void handleForm(AsyncWebServerRequest* request) {
     formattedHtml.replace("%HOST%", hostNew);
     request->send_P(200, "text/html", formattedHtml.c_str());
 
+    displayIconStatusText(ssidNew.c_str(), "Berhasil simpan Config..", epd_bitmap_check_3x);
     delay(2000);
+
+    startTimeBootLoad = millis();
+    bootLoad("Menjalankan Config...");
 
     WiFi.softAPdisconnect(true);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssidNew.c_str(), passNew.c_str());
 
     int attempts = 0;
+    startTimeBootLoad = millis();
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(1000);
       Serial.print(".");
+      bootLoad("Menyambungkan ke WiFi...");
       attempts++;
     }
 
@@ -333,6 +443,7 @@ void handleForm(AsyncWebServerRequest* request) {
     } else {
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
+      displayIconStatusText(ssidNew.c_str(), "Terhubung ke WiFi", epd_bitmap_check_3x);
     }
   }
 }
@@ -386,6 +497,7 @@ void setup() {
     WiFi.begin(ssidNew.c_str(), passNew.c_str());
 
     int attempts = 0;
+    startTimeBootLoad = millis();
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(1000);
       Serial.print(".");
@@ -470,6 +582,8 @@ void loop() {
 
       // Baca tag RFID
       if (bacaTag()) {
+        startTimeBootLoad = millis();
+        bootLoad("Membaca Kartu ID..");
         Serial.print("ID Tag: ");
         Serial.println(IDTAG);
       }
