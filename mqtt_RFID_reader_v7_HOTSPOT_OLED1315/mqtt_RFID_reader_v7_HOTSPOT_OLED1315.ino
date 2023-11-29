@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <vector>
 #include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 #include <MFRC522.h>
@@ -54,6 +55,14 @@ char IDTAG[20];
 char chipID[25];
 char key[50] = "1234567890987654321";
 
+struct WifiInfo {
+  String ssid;
+  int rssi;
+  String security;
+};
+
+std::vector<WifiInfo> wifiList;
+
 String receivedMessage = "";
 
 MFRC522 mfrc522(SDA_PIN, RST_PIN);
@@ -72,6 +81,7 @@ const unsigned long TUNGGU_RESPON_SERVER = 5000;
 unsigned long startTimeBootLoad;
 
 int nom;
+int networks;
 
 int screenWidth = u8g2.getWidth();
 int screenHeight = u8g2.getHeight();
@@ -90,6 +100,8 @@ String ssidNew = "", passNew, nodeviceNew, hostNew;
 String usernameLogin, passwordLogin;
 
 ESP8266WebServer server(80);
+
+String injekHtml;
 
 #include "function.h"
 
@@ -146,12 +158,20 @@ void handelLogin() {
 
   if (usernameOK && passwordOK) {
     String formattedHtml = String(index_html);
-    formattedHtml.replace("%s", chipID);
+    formattedHtml.replace("%IDCHIP%", chipID);
     formattedHtml.replace("%c", "/");
     formattedHtml.replace("%SSID_NEW%", ssidNew);
     formattedHtml.replace("%PASS_NEW%", passNew);
     formattedHtml.replace("%NODEVICE%", nodevice);
-    formattedHtml.replace("%HOST%", mqtt_server);
+    formattedHtml.replace("%HOST%", hostNew);
+
+    if (networks == 0) {
+      formattedHtml.replace("%find%", "");
+      formattedHtml.replace("%IN%", "");
+    } else {
+      formattedHtml.replace("%find%", "<h5>SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>");
+      formattedHtml.replace("%IN%", injekHtml);
+    }
 
     // Send the response
     server.send(200, "text/html", formattedHtml);
@@ -543,6 +563,9 @@ void bukaAP(String _text) {
   WiFi.disconnect();
   // delay sebelum memulai konfigurasi AP
   delay(1000);
+
+  searchingWifi();
+
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
   server.begin();  // Mulai server dalam mode Akses Poin

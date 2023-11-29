@@ -34,6 +34,14 @@ const char index_html[] PROGMEM = R"rawliteral(
             text-decoration: none;
         }
 
+        h5 {
+            text-align: center;
+            font-size: 10px;
+            margin: 0;
+            color: rgb(0, 195, 255);
+            font-weight: 100;
+        }
+
         a {
             text-decoration: none;
             color: gray;
@@ -134,16 +142,71 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color: #787878;
             color: #ffffff;
         }
-    </style>
 
+        .listssid {
+            background-color: #000000;
+            height: 15vh;
+            border-radius: 10px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border: #f1f1f1 solid 5px;
+            letter-spacing: 2px;
+            line-height: 16px;
+        }
+
+        .light-mode-listssid {
+            background-color: #ffffff;
+            border: #d4d4d4 solid 5px;
+        }
+
+        .listssid a {
+            color: rgb(80, 225, 70);
+            border-bottom: #adadad solid;
+        }
+
+        /* Atau, untuk menyembunyikan hanya scrollbar vertikal */
+        .listssid::-webkit-scrollbar {
+            width: 0.5em;
+            /* Sesuaikan lebar scrollbar sesuai keinginan Anda */
+        }
+
+        .listssid::-webkit-scrollbar-track {
+            background-color: #f1f1f1;
+            /* Atur warna latar belakang track scrollbar jika ingin menampilkannya */
+        }
+
+        .listssid::-webkit-scrollbar-thumb {
+            background-color: #888;
+            /* Atur warna thumb scrollbar */
+            border-radius: 4px;
+            /* Atur border radius thumb scrollbar */
+        }
+
+        #reload {
+            display: flex;
+            justify-content: end;
+            margin-bottom: 10px;
+            color: red;
+            font-weight: bolder;
+        }
+
+        #tmblssid1:hover{
+            cursor: pointer;
+            background-color: #363636;
+        }
+    </style>
 
     <div class="container" id="container">
         <div class="content" id="content">
             <form action="/action_page" method="post">
                 <h2>𝕊𝕚𝔸ℙℙ</h2>
-                <hr>
                 <h3>Konfigurasi Device</h3>
-                <br><br>
+                <hr>
+                %find%
+                %IN%
+                <br>
                 <label for="ssid">SSID</label>
                 <input type="text" id="ssid" name="ssidNew" value="%SSID_NEW%" placeholder="SSID WiFi Anda" required>
 
@@ -166,7 +229,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 <input type="submit" value="Simpan">
 
                 <hr>
-                <h6><a href="mailto:bennysurahman@gmail.com">%s</a> &copy; 2023-2024
+                <h6><a href="mailto:bennysurahman@gmail.com">%IDCHIP%</a> &copy; 2023-2024
                 </h6>
             </form>
 
@@ -192,15 +255,22 @@ const char index_html[] PROGMEM = R"rawliteral(
         function toggleTheme() {
             var content = document.getElementById('content');
             var container = document.getElementById('container');
+            var listssid = document.getElementById('listssid');
             var theme = document.getElementById('theme');
             content.classList.toggle('light-mode');
             container.classList.toggle('light-mode-conrainer');
+            listssid.classList.toggle('light-mode-listssid');
 
             if (theme.textContent === "Dark") {
                 theme.textContent = "Light";
             } else {
                 theme.textContent = "Dark";
             }
+        }
+
+        function changeSSID(newSSID) {
+            const ssidInput = document.getElementById('ssid');
+            ssidInput.value = newSSID;
         }
     </script>
 </body>

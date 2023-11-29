@@ -510,6 +510,84 @@ void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t
   u8g2.sendBuffer();
 }
 
+
+void printWifiList() {
+  Serial.println("WiFi networks ditemukan:");
+  displayIconStatusText(ssidNew.c_str(), "WiFi network ditemukan..", epd_bitmap_check_3x);
+
+  injekHtml = "";
+  injekHtml = "<div id=\"listssid\" class=\"listssid\">";
+
+  int ii;
+  for (const auto& wifi : wifiList) {
+    Serial.print(ii);
+    Serial.print(". ");
+    Serial.print("SSID: ");
+    Serial.print(wifi.ssid);
+    Serial.print(", RSSI: ");
+    Serial.print(wifi.rssi);
+    Serial.print(" dBm, Security: ");
+    Serial.println(wifi.security);
+
+    injekHtml += "<a id=\"tmblssid1\" onclick=\"changeSSID('" + wifi.ssid + "')\">" + wifi.ssid + " (" + wifi.rssi + " dBm) " + wifi.security + "</a><br>";
+
+    ii++;
+  }
+
+  injekHtml += "</div>";
+}
+
+void findWifi() {
+  Serial.println("Mencari WiFi...");
+
+  wifiList.clear();
+
+  // Tunggu hingga pemindaian WiFi selesai
+  networks = WiFi.scanNetworks();
+
+  // Tambahkan informasi WiFi ke dalam vektor
+  for (int i = 0; i < networks; ++i) {
+    WifiInfo wifi;
+    wifi.ssid = WiFi.SSID(i);
+    wifi.rssi = WiFi.RSSI(i);
+    switch (WiFi.encryptionType(i)) {
+      case ENC_TYPE_NONE:
+        wifi.security = "Open";
+        break;
+      case ENC_TYPE_WEP:
+        wifi.security = "WEP";
+        break;
+      case ENC_TYPE_TKIP:
+      case ENC_TYPE_CCMP:
+        wifi.security = "WPA/WPA2";
+        break;
+      default:
+        wifi.security = "Unknown";
+        break;
+    }
+    wifiList.push_back(wifi);
+  }
+
+  // Tampilkan hasil pemindaian
+  if (networks == 0) {
+    Serial.println("WiFi tidak ditemukan. REBOOT / Config Manual");
+    injekHtml = "WiFi tidak ditemukan. REBOOT / Config Manual";
+    displayIconStatusText(ssidNew.c_str(), "WiFi tidak ditemukan. REBOOT / Config Manual", epd_bitmap_x_3x);
+    delay(2000);
+  } else {
+    startTimeBootLoad = millis();
+    bootLoad("Memuat hasil Pencarian WiFi...");
+    printWifiList();
+  }
+}
+
+void searchingWifi() {
+  startTimeBootLoad = millis();
+  bootLoad("Mencari SSID WiFi Sekitar...");
+  findWifi();
+}
+
+
 void buzz(int loop) {
   if (loop == 0) {
     digitalWrite(BUZ_PIN, LOW);
