@@ -23,16 +23,17 @@
 #endif
 
 #define buttonPin 2
-#define buzzerPin 0
+#define buzzerPin 4
 
 const int eepromSize = 512;
 const int debounceDelay = 50;
 
-unsigned long buttonPressTime = 0;
-unsigned long lastTimeConnected = 0;
+boolean SerialAktif = false;
 boolean tombolDitekan = false;
-boolean modeAP = false;
 boolean tungguRespon = false;
+boolean modeAP = false;
+unsigned long lastTimeConnected = 0;
+unsigned long buttonPressTime = 0;
 
 String ssidNew = "", passNew, nodeviceNew, hostNew;
 String usernameLogin, passwordLogin;
@@ -70,7 +71,7 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA,
 
 unsigned long startTimeBootLoad;
 unsigned long lastTunggurespon = 0;
-const unsigned long TUNGGU_RESPON_SERVER = 5000;
+const unsigned long TUNGGU_RESPON_SERVER = 10000;
 
 int nom;
 int networks;
@@ -335,7 +336,7 @@ void bukaAP(String _text) {
   startTimeBootLoad = millis();
   bootLoad("Memulai Akses Poin...");
 
-  String ssidString = "SiAPP-x32-" + chipID;
+  String ssidString = "SiAPP-" + chipID;
   const char* ssid = ssidString.c_str();
   const char* password = "siap$bos";
 
@@ -346,12 +347,14 @@ void bukaAP(String _text) {
   Serial.println("");
   Serial.print("AP: ");
   Serial.println(ssid);
+  Serial.print("Pass: ");
+  Serial.println(password);
   Serial.print("IP Address (AP): ");
   Serial.println(IP);
 
   u8g2.clearBuffer();
   drawWrappedText("MODE AKSES POIN", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-  drawWrappedText(ssid, screenWidth / 2, 24, screenWidth, u8g2_font_7x13_tf);
+  drawWrappedText(ssid, screenWidth / 2, 27, screenWidth, u8g2_font_7x13_tf);
   drawWrappedText(password ? password : "<Tidak Ada Password>", screenWidth / 2, 45, screenWidth, u8g2_font_7x13_tf);
   drawWrappedText(IP.toString().c_str(), screenWidth / 2, 60, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();
@@ -393,7 +396,8 @@ void handleLogin(AsyncWebServerRequest* request) {
       formattedHtml.replace("%find%", "");
       formattedHtml.replace("%IN%", "");
     } else {
-      formattedHtml.replace("%find%", "<h5>SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>");
+      // formattedHtml.replace("%find%", "<h5>" + networks + " SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>");
+      formattedHtml.replace("%find%", String("<h5>") + networks + F(" SSID WiFi ditemukan (Klik SSID untuk memilih)</h5>"));
       formattedHtml.replace("%IN%", injekHtml);
     }
 
@@ -508,15 +512,13 @@ void checkButton() {
 
   if (buttonPressed == LOW) {
     tombolDitekan = true;
-    digitalWrite(0, HIGH);
-    delay(100);
-    digitalWrite(0, LOW);
-    delay(100);
 
+    buzz(1);
     Serial.print("#");
     if (millis() - buttonPressTime > 5000) {
       tombolDitekan = false;
 
+      buzz(2);
       displayIconStatusText(ssidNew.c_str(), "Tombol SET aktif! Mulai mode AP..", epd_bitmap_check_3x);
       delay(2000);
       bukaAP("Tombol telah ditekan selama 5 detik. Memulai mode Akses Poin...");
@@ -660,11 +662,15 @@ void setup() {
   Serial.println(chipID);
 
   timeClient.begin();
+
+  buzz(2);
+  client.disconnect();
 }
 
 void loop() {
+  client.loop();
+
   if (modeAP == false) {
-    client.loop();
     checkButton();
 
     if (WiFi.status() == WL_CONNECTED) {
@@ -673,12 +679,13 @@ void loop() {
       // Baca tag RFID
       if (bacaTag() && !tungguRespon) {
         buzz(1);
+        noLoadBarJustText("Membaca Kartu ID..");
+        reconnect();
 
         static char hasilTAG[20] = "";  // Store previous tag ID
 
         if (strcmp(hasilTAG, IDTAG) != 0) {
           startTimeBootLoad = millis();
-          noLoadBarJustText("Membaca Kartu ID..");
 
           strcpy(hasilTAG, IDTAG);
 
@@ -687,8 +694,10 @@ void loop() {
           tungguRespon = true;
           lastTunggurespon = millis();
 
-          Serial.print("ID Tag: ");
-          Serial.println(IDTAG);
+          if (SerialAktif) {
+            Serial.print("ID Tag: ");
+            Serial.println(IDTAG);
+          }
         }
 
         delay(1000);
@@ -699,6 +708,25 @@ void loop() {
       }
 
       buzz(0);
+      receivedMessage = "";
+
+      // Icon Muter
+      u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_60);
+      u8g2.sendBuffer();
+
+      if (tungguRespon) {
+        unsigned long currentTime2 = millis();
+        if (currentTime2 - lastTunggurespon > TUNGGU_RESPON_SERVER) {
+          tungguRespon = false;
+          u8g2.clearBuffer();
+          iconBMP(5);
+          drawWrappedText("Gagal Mengambil Data Server!", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+          u8g2.sendBuffer();
+          buzzBasedOnMessage("500");
+          delay(1000);
+          client.disconnect();
+        }
+      }
 
       // tanda telakhir kali konek
       lastTimeConnected = millis();
@@ -732,7 +760,7 @@ String idChip() {
 
 int bacaTag() {
   if (!tungguRespon && modeAP == false) {
-    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_60);
+    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_120);
     u8g2.sendBuffer();
   }
 
@@ -848,7 +876,6 @@ void iconBMP(int pilih_iconBMP) {
   }
 }
 
-
 void iconCenter(const char* _kode) {
   u8g2.clearBuffer();
   if (nom <= 11) {
@@ -931,7 +958,7 @@ void homeLCD() {
   }
 
   if (rssi >= (-60)) {
-    u8g2.drawStr(15, 6, "+");
+    u8g2.drawStr(15, 8, "+");
   }
 
   drawWrappedText(centerText, 72, 40, screenWidth * 0.75, u8g2_font_luBS08_tf);
@@ -1039,14 +1066,17 @@ void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   startTimeBootLoad = millis();
   while (!client.connected()) {
-    Serial.println("Menyambungkan ke MQTT Broker...");
+    if (SerialAktif)
+      Serial.println("Menyambungkan ke MQTT Broker...");
+
+    client.setServer(hostNew.c_str(), mqtt_port);
+    client.setCallback(callback);
 
     bootLoad("Menyambungkan ke Server..");
     // Coba terhubung ke broker MQTT
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-      Serial.println("Tersambung ke MQTT Broker");
-
-      noLoadBarJustText("Tersambung ke Server");
+      if (SerialAktif)
+        Serial.println("Tersambung ke MQTT Broker");
 
       // Langganan topik yang Anda butuhkan di sini jika diperlukan
       String topic = "responServer_";
@@ -1087,8 +1117,10 @@ String sendCardIdToServer(String cardId) {
   if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
     String mqttTopic = "dariMCU_" + String(nodevice);
 
-    Serial.println("Tersambung ke MQTT Broker");
-    Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
+    if (SerialAktif) {
+      Serial.println("Tersambung ke MQTT Broker");
+      Serial.println("Kirim ke topik: " + mqttTopic + ": " + request);
+    }
 
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
@@ -1109,16 +1141,20 @@ String sendCardIdToServer(String cardId) {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Menerima pesan pada topic: ");
-  Serial.println(topic);
+  if (SerialAktif) {
+    Serial.print("Menerima pesan pada topic: ");
+    Serial.println(topic);
+  }
 
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
   }
 
-  Serial.print("Pesan: ");
-  Serial.println(receivedMessage);
-  Serial.println();
+  if (SerialAktif) {
+    Serial.print("Pesan: ");
+    Serial.println(receivedMessage);
+    Serial.println();
+  }
 
   // prosen respon data
   identifyAndProcessJsonResponse(receivedMessage, nodevice);
@@ -1158,22 +1194,24 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
     const char* json_nokartu = jsonDoc["respon"][0]["nokartu"];
 
     if (json_nodevice) {
-      Serial.print("- id: ");
-      Serial.println(json_id);
-      Serial.print("- nodevice asal: ");
-      Serial.println(_nodevice);
-      Serial.print("- nodevice json: ");
-      Serial.println(json_nodevice);
-      Serial.print("- pesan: ");
-      Serial.println(json_message);
-      Serial.print("- info: ");
-      Serial.println(json_info);
-      Serial.print("- nokartu: ");
-      Serial.println(json_nokartu);
+      if (SerialAktif) {
+        Serial.print("- id: ");
+        Serial.println(json_id);
+        Serial.print("- nodevice asal: ");
+        Serial.println(_nodevice);
+        Serial.print("- nodevice json: ");
+        Serial.println(json_nodevice);
+        Serial.print("- pesan: ");
+        Serial.println(json_message);
+        Serial.print("- info: ");
+        Serial.println(json_info);
+        Serial.print("- nokartu: ");
+        Serial.println(json_nokartu);
+      }
 
       if (strcmp(_nodevice, json_nodevice) == 0 && strcmp("406", json_message) != 0) {
-        Serial.print("ID & Nomor Device Sesuai! ");
-        Serial.println();
+        if (SerialAktif)
+          Serial.print("ID & Nomor Device Sesuai! ");
 
         // Find the position of the search string
         const char* startPos = strstr(json_info, "--");
@@ -1201,7 +1239,6 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         u8g2.setDrawColor(1);
         // iconBMP(1);
         drawWrappedText(json_info, (screenWidth / 2), (screenHeight / 2) - 5, screenWidth, u8g2_font_7x13_tf);
-        // drawWrappedText(json_info, 75, 25, screenWidth * 0.75, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
         pesanJSON = json_message;

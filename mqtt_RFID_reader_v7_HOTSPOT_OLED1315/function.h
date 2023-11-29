@@ -550,6 +550,7 @@ void findWifi() {
     WifiInfo wifi;
     wifi.ssid = WiFi.SSID(i);
     wifi.rssi = WiFi.RSSI(i);
+
     switch (WiFi.encryptionType(i)) {
       case ENC_TYPE_NONE:
         wifi.security = "Open";
@@ -558,7 +559,12 @@ void findWifi() {
         wifi.security = "WEP";
         break;
       case ENC_TYPE_TKIP:
+        wifi.security = "WPA/TKIP";
+        break;
       case ENC_TYPE_CCMP:
+        wifi.security = "WPA2/CCMP";
+        break;
+      case ENC_TYPE_AUTO:
         wifi.security = "WPA/WPA2";
         break;
       default:

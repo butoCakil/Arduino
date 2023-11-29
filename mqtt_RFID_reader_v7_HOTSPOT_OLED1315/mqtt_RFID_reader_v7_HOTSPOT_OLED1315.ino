@@ -93,9 +93,6 @@ const int debounceDelay = 50;  // Waktu debounce dalam milidetik
 unsigned long buttonPressTime = 0;
 boolean tombolDitekan = false;
 
-const char* ssid = "SiAPP-Config";
-const char* password = "siap$bos";
-
 String ssidNew = "", passNew, nodeviceNew, hostNew;
 String usernameLogin, passwordLogin;
 
@@ -207,6 +204,7 @@ void handleReboot() {
 }
 
 void handleForm() {
+  bootLoad("Menyimpan Config...");
   ssidNew = server.arg("ssidNew");
   passNew = server.arg("passNew");
   nodeviceNew = server.arg("nodevice");
@@ -225,6 +223,8 @@ void handleForm() {
 
   // jangan menyimpan config kosong
   if (ssidNew == "" && hostNew == "" && nodeviceNew == "") {
+    displayIconStatusText(ssidNew.c_str(), "Gagal simpan Config, Ulangi SET Config!", epd_bitmap_x_3x);
+
     String formattedHtml = String(error_html);
     formattedHtml.replace("%s", "GAGAL melakukan Konfigurasi");
     formattedHtml.replace("%c", "/setting");
@@ -246,10 +246,12 @@ void handleForm() {
     server.send(200, "text/html", formattedHtml);
     startTimeBootLoad = millis();
     buzz(2);
-    bootLoad("Menyimpan Config..");
+    displayIconStatusText(ssidNew.c_str(), "Berhasil simpan Config..", epd_bitmap_check_3x);
     delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
 
     WiFi.softAPdisconnect(true);
+
+    bootLoad("Menjalankan Config...");
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssidNew.c_str(), passNew.c_str());
@@ -259,6 +261,7 @@ void handleForm() {
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(1000);
       Serial.print("i");
+      bootLoad("Menyambungkan ke WiFi...");
       attempts++;
     }
 
@@ -267,14 +270,14 @@ void handleForm() {
       // tampilkan wifi tidak dapat terhubung
       buzz(3);
       modeAPaktif = true;
-      displayIconStatusText(ssid, "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
+      displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
     } else {
       buzz(2);
       modeAPaktif = false;
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
-      displayIconStatusText(ssid, "berhasil konek ke WiFi", epd_bitmap_check_3x);
+      displayIconStatusText(ssidNew.c_str(), "berhasil konek ke WiFi", epd_bitmap_check_3x);
 
       delay(2000);
       boot("Restart dalam 3 detik");
@@ -381,7 +384,7 @@ void setup() {
       Serial.println(hostNew);
       Serial.println();
 
-      displayIconStatusText(ssid, "Tersambung ke WiFi", epd_bitmap_check_3x);
+      displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
 
       Serial.println();
       Serial.println("Tersambung ke WiFi");
@@ -439,12 +442,12 @@ void setup() {
       Serial.println("Tempelkan kartu RFID..");
     } else {
       modeAPaktif = true;
-      displayIconStatusText(ssid, "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
+      displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
     }
   } else {
     modeAPaktif = true;
-    displayIconStatusText(ssid, "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
+    displayIconStatusText(ssidNew.c_str(), "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
     delay(1000);
     bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
   }
@@ -565,6 +568,13 @@ void bukaAP(String _text) {
   delay(1000);
 
   searchingWifi();
+
+  String ssidString = "SiAPP-" + String(chipID);
+  const char* ssid = ssidString.c_str();
+  const char* password = "siap$bos";
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(ssid, password);
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
