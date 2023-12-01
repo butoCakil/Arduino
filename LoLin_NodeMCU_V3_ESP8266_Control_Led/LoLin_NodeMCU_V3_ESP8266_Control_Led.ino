@@ -1,8 +1,12 @@
 //Original source code : http://enrique.latorres.org/2017/10/17/testing-lolin-nodemcu-v3-esp8266/
 //Download LoLin NodeMCU V3 ESP8266 Board for Arduino IDE (json) : http://arduino.esp8266.com/stable/package_esp8266com_index.json
 #include <ESP8266WiFi.h>
-const char* ssid = "私まで";
-const char* password = "sijitekanwolu";
+// const char* ssid = "私まで";
+// const char* password = "sijitekanwolu";
+const char *ssid = "ben10S";
+const char *password = "8karakter";
+// const char *ssid = "IOT";
+// const char *password = "microkontroler";
 int ledPin = 2; // Arduino standard is GPIO13 but lolin nodeMCU is 2 http://www.esp8266.com/viewtopic.php?f=26&t=13410#p61332
 WiFiServer server(80);
 void setup() {

@@ -1,0 +1,270 @@
+const char config_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROLER Config</title>
+</head>
+
+<body>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+        }
+
+        h2,
+        h3 {
+            text-align: center;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        h6 {
+            text-align: center;
+            font-size: 10px;
+            margin: 0;
+            text-decoration: none;
+        }
+
+        h5 {
+            text-align: center;
+            font-size: 10px;
+            margin: 0;
+            color: rgb(0, 195, 255);
+            font-weight: 100;
+        }
+
+        a:hover {
+            box-shadow: rgba(0, 0, 0, 0.753) 5px 5px 20px;
+        }
+
+        #tmblkembali {
+            background-color: #0c0c0c;
+            border: none;
+            color: #f1f1f1;
+            padding: 10px;
+            font-size: 24px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+            text-align: center;
+            text-decoration: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            border-radius: 10px;
+            background-color: #ffffff;
+            padding: 5px;
+            margin: 10%;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+        }
+
+        .content {
+            background-color: #363636;
+            color: #ffffff;
+            box-shadow: rgba(48, 39, 71, 0.753) 3px 3px 5px;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #theme {
+            position: absolute;
+            right: 0;
+            top: 0;
+            margin-top: 10%;
+            background: linear-gradient(to top, rgb(0, 162, 255), aqua);
+            border: none;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 4px 8px;
+            padding: 10px;
+            border-radius: 10px 0px 0px 10px;
+            border-left: #c7c6c6 solid;
+            border-bottom: #9d9d9d solid;
+            border-top: #f1f1f1 solid;
+        }
+
+        #theme:hover {
+            cursor: pointer;
+        }
+
+        .light-mode {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .light-mode-container {
+            background-color: #787878;
+            color: #ffffff;
+        }
+
+        #settingWaktu {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #setJam,
+        #setMenit,
+        #setDetik {
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            height: 10vh;
+            width: 20vh;
+            font-size: 50px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        input[type=submit] {
+            width: 100%;
+            background-color: #45A049;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #f1f1f1;
+            text-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+            box-shadow: rgba(48, 39, 71, 0.753) 2px 2px 10px;
+        }
+
+        #btnSubmit {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input:hover {
+            cursor: pointer;
+        }
+
+        #alert {
+            background-color: rgb(42, 180, 211);
+            padding: 5px;
+            text-align: center;
+            border-radius: 10px;
+            border: rgb(107, 184, 201) solid 1px;
+        }
+
+        @media screen and (max-width: 600px) {
+            #setJam,
+            #setMenit,
+            #setDetik {
+                height: 5%;
+                width: 30%;
+                font-size: 30px;
+            }
+        }
+        
+        @media screen and (max-width: 300px) {
+            #setJam,
+            #setMenit,
+            #setDetik {
+                height: 5%;
+                width: 30%;
+                font-size: 16px;
+            }
+        }
+    </style>
+
+    <div class="container" id="container">
+        <div class="content" id="content">
+            <div id="beranda">
+                <h2>CONTROL</h2>
+                <h3>Config Device</h3>
+                <hr>
+                %alert%
+                <hr>
+                <form action="/setting" method="get">
+                    <div id="settingWaktu">
+                        <select name="setJam" id="setJam" aria-label="pilihJAM">
+                            <!-- Generate options for hours (0 to 23) -->
+                            <script>
+                                for (let i = 0; i <= 23; i++) {
+                                    document.getElementById('setJam').innerHTML += `<option value="${i}">${i < 10 ? '0' + i : i}</option>`;
+                                }
+                            </script>
+                        </select>
+
+                        <select name="setMenit" id="setMenit" aria-label="pilihMENIT">
+                            <!-- Generate options for minutes (0 to 59) -->
+                            <script>
+                                for (let i = 0; i <= 59; i++) {
+                                    document.getElementById('setMenit').innerHTML += `<option value="${i}">${i < 10 ? '0' + i : i}</option>`;
+                                }
+                            </script>
+                        </select>
+
+                        <select name="setDetik" id="setDetik" aria-label="pilihDETIK">
+                            <!-- Generate options for minutes (0 to 59) -->
+                            <script>
+                                for (let i = 0; i <= 59; i++) {
+                                    document.getElementById('setDetik').innerHTML += `<option value="${i}">${i < 10 ? '0' + i : i}</option>`;
+                                }
+                            </script>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="setDetik" value="0">
+
+                    <div id="btnSubmit">
+                        <input type="submit" value="SET">
+                        <a id="tmblkembali" href="%href%">Kembali</a>
+                    </div>
+                </form>
+            </div>
+
+            <button id="theme" onclick="toggleTheme()">Light</button>
+
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const jamParam = urlParams.get('setJam');
+        const menitParam = urlParams.get('setMenit');
+        const detikParam = urlParams.get('setDetik');
+
+        // Set opsi yang dipilih berdasarkan nilai parameter GET
+        setOptionValue('setJam', jamParam);
+        setOptionValue('setMenit', menitParam);
+        setOptionValue('setDetik', detikParam);
+
+        function toggleTheme() {
+            var content = document.getElementById('content');
+            var container = document.getElementById('container');
+            var listssid = document.getElementById('listssid');
+            var theme = document.getElementById('theme');
+            content.classList.toggle('light-mode');
+            container.classList.toggle('light-mode-container');
+
+            // Periksa apakah elemen memiliki kelas 'light-mode'
+            var isLightMode = content.classList.contains('light-mode');
+
+            // Setel teks tombol berdasarkan tema yang aktif
+            theme.textContent = isLightMode ? "Dark" : "Light";
+        }
+
+        // Fungsi untuk mengatur opsi yang dipilih
+        function setOptionValue(selectId, paramValue) {
+            const select = document.getElementById(selectId);
+            if (select) {
+                const option = select.querySelector(`option[value="${paramValue}"]`);
+                if (option) {
+                    option.selected = true;
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
+)rawliteral";

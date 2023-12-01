@@ -1,8 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include "HTML.h"
 #include <EEPROM.h>
+#include "HTML.h"
 
 #define buttonPin D8  // Pin tempat tombol push button dihubungkan
 const int eepromSize = 512;

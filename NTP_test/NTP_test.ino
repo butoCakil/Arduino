@@ -6,7 +6,7 @@
 const char *ssid     = "UPTOME";
 const char *password = "kurniasandi";
 
-
+// GMT +7: (7 * 60 * 60)
 const long utcOffsetInSeconds = 25200;
 
 // Setting tanggal menjadi nama hari
