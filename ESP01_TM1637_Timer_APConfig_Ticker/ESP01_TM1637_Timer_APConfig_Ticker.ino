@@ -29,8 +29,8 @@ boolean buttonState = HIGH;
 boolean lastResetButtonState = HIGH;
 boolean resetButtonState = HIGH;
 
-#define BUZZER 14   //D5
-#define LOAD 12     //D6
+#define BUZZER 14  //D5
+#define LOAD 12    //D6
 
 boolean dot = false;
 boolean timerBerjalan = false;
@@ -130,12 +130,22 @@ void handleSaveConfig(AsyncWebServerRequest *request) {
 
   StringJam = String(runJam < 10 ? "0" + String(runJam) : String(runJam)) + ":" + String(runMenit < 10 ? "0" + String(runMenit) : String(runMenit)) + ":" + String(runDetik < 10 ? "0" + String(runDetik) : String(runDetik));
 
-  countdownDuration = runJam * (60 * 60) + (runMenit * 60) + (runDetik);
+  display.clear();
 
-  timeLeft = countdownDuration;
-
+  timerBerhenti = false;
   startTime = millis();
   pauseTime = 0;
+
+  countdownDuration = runJam * 3600 + runMenit * 60 + runDetik;
+
+  if (runJam > 0) {
+    tampilTimer(runJam, runMenit);
+  } else {
+    tampilTimer(runMenit, runDetik);
+  }
+
+  timeLeft = countdownDuration;
+  printTime(timeLeft);
 
   String alert = "<div id=\"alert\"><p>Berhasil Simpan</p></div>";
   String formattedHtml = String(config_html);
@@ -198,9 +208,9 @@ void handleHome(AsyncWebServerRequest *request) {
     String formattedHtml = String(home_html);
     formattedHtml.replace("%His%", StringJam);
     formattedHtml.replace("%START%", statusTimer);
-    formattedHtml.replace("%setjam%", String(setJam));
-    formattedHtml.replace("%setmenit%", String(setMenit));
-    formattedHtml.replace("%setdetik%", String(setDetik));
+    formattedHtml.replace("%setjam%", String(runJam));
+    formattedHtml.replace("%setmenit%", String(runMenit));
+    formattedHtml.replace("%setdetik%", String(runDetik));
     formattedHtml.replace("%href%", "/");
     request->send(200, "text/html", formattedHtml);
   } else if (!usernameOK && passwordOK) {
@@ -328,7 +338,8 @@ void loop() {
   bacaTombol();
   stopStatusTimer();
 
-  if(!timerBerhenti && timerBerjalan){
+  // if (!timerBerhenti && timerBerjalan) {
+  if (timer.active()) {
     digitalWrite(LOAD, HIGH);
   } else {
     digitalWrite(LOAD, LOW);
@@ -361,7 +372,7 @@ void bacaTombol() {
     delay(50);
 
     // Reset timer jika tombol reset ditekan saat timer berhenti
-    if (!timerBerjalan && resetButtonState == LOW) {
+    if (resetButtonState == LOW) {
       resetTimer();
     }
   }
@@ -383,24 +394,25 @@ void stopStatusTimer() {
       if (tampilanStop) {
         display.setSegments(SEG_STOP);
         tampilanStop = false;
-        timerBerhenti = true;
       } else {
         tampilTimer(0, 0);
         tampilanStop = true;
-        timerBerhenti = true;
       }
+
+      timerBerhenti = true;
+      timerBerjalan = false;
     }
 
     bacaTombol();
   }
 }
 
-void buz(){
-  if(timerBerhenti){
-    if(tampilanStop){
-      digitalWrite(BUZZER, LOW);
-    } else {
+void buz() {
+  if (timerBerhenti) {
+    if (tampilanStop) {
       digitalWrite(BUZZER, HIGH);
+    } else {
+      digitalWrite(BUZZER, LOW);
     }
   }
 }
@@ -424,6 +436,9 @@ void playPauseTimer() {
 
 void resetTimer() {
   if (!timerBerjalan) {
+    digitalWrite(BUZZER, LOW);
+    
+    timer.detach();
     display.clear();
 
     timerBerhenti = false;
@@ -440,6 +455,8 @@ void resetTimer() {
 
     timeLeft = countdownDuration;
     printTime(timeLeft);
+
+
   }
 }
 
