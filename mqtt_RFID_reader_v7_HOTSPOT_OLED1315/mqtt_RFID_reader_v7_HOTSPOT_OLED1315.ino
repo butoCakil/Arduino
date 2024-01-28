@@ -361,8 +361,14 @@ void setup() {
 
     u8g2.clearBuffer();                  // clear the internal memory
     u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-    drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+    drawWrappedText("SMK Negeri Bansari", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+    drawWrappedText("SiAPP", screenWidth / 2, (screenHeight / 2), screenWidth, u8g2_font_luBIS14_tf);
+    u8g2.drawFrame(0, 16, 128, 1);
+    u8g2.drawFrame(0, 33, 128, 1);
+    drawWrappedText("Sistem Administrasi Presensi Pembelajaran", screenWidth / 2, 44, screenWidth, u8g2_font_luBIS08_tf);
     u8g2.sendBuffer();
+
+    delay(2000);
 
     // Get ESP8266 Chip ID
     int num = ESP.getChipId();

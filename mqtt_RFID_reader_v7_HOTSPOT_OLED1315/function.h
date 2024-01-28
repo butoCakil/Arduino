@@ -305,7 +305,7 @@ void homeLCD() {
 
   u8g2.drawXBM(0, 0, barsignal, 16, epd_bitmap_signal_2x);
   u8g2.setFont(u8g2_font_luBIS10_tf);
-  u8g2.drawStr(30, 12, "SiAPP BOS");
+  u8g2.drawStr(27, 12, "SiAPP BOS");
   // u8g2.setFont(u8g2_font_6x10_tf);
   // u8g2.drawStr(96, 12, rssiString);
   // u8g2.drawStr(116, 12, "db");
