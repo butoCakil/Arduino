@@ -414,7 +414,13 @@ void setup() {
         Serial.println(hostNew);
         Serial.println();
 
-        displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
+        // displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
+
+        u8g2.clearBuffer();
+        drawWrappedText(ssidNew.c_str(), (screenWidth / 2) - 5, 5, screenWidth, u8g2_font_luBIS08_tf);
+        u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_check_3x);
+        drawWrappedText("TTersambung ke WiFi", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+        u8g2.sendBuffer();
 
         Serial.println();
         Serial.println("Tersambung ke WiFi");
@@ -460,7 +466,7 @@ void setup() {
         topic += nodevice;
         client.subscribe(topic.c_str(), 0);
 
-        displayIconStatusText(nodevice, "Tersambung ke Server", epd_bitmap_check_3x);
+        displayIconStatusText(nodevice, "Terhubung ke Server", epd_bitmap_check_3x);
 
         // Initialize a NTPClient to get time
         timeClient.begin();

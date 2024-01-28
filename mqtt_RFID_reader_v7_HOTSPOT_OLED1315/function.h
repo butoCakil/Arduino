@@ -305,7 +305,7 @@ void homeLCD() {
 
   u8g2.drawXBM(0, 0, barsignal, 16, epd_bitmap_signal_2x);
   u8g2.setFont(u8g2_font_luBIS10_tf);
-  u8g2.drawStr(40, 12, "SiAPP");
+  u8g2.drawStr(30, 12, "SiAPP BOS");
   // u8g2.setFont(u8g2_font_6x10_tf);
   // u8g2.drawStr(96, 12, rssiString);
   // u8g2.drawStr(116, 12, "db");
@@ -507,7 +507,7 @@ String sendCardIdToServer(String cardId) {
 void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_luBIS08_tf);
-  drawWrappedText(_title, (screenWidth / 2) - 5, 5, screenWidth, u8g2_font_luBIS08_tf);
+  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
   u8g2.drawXBM(52, 16, 24, 24, _icon);
   drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();
