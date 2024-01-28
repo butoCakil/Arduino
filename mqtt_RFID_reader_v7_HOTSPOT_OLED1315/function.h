@@ -145,6 +145,9 @@ const unsigned char* epd_bitmap_allArray[6] = {
 };
 
 void drawLoadingBar(int centerX, int centerY, int width, int height, float progress) {
+  // u8g2.drawFrame(posisi X, posisi Y, lebar, tinggi)
+  // u8g2.drawBox(posisi X, posisi Y,  (minimal - maksimal), tinggi)
+  
   u8g2.drawFrame(centerX - width / 2, centerY - height / 2, width, height);
   int barWidth = width * progress;
   u8g2.drawBox(centerX - width / 2, centerY - height / 2, barWidth, height);
@@ -504,7 +507,7 @@ String sendCardIdToServer(String cardId) {
 void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_luBIS08_tf);
-  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
+  drawWrappedText(_title, (screenWidth / 2) - 5, 5, screenWidth, u8g2_font_luBIS08_tf);
   u8g2.drawXBM(52, 16, 24, 24, _icon);
   drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();

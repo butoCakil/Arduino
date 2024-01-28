@@ -10,13 +10,13 @@ struct WifiInfo {
 std::vector<WifiInfo> wifiList;
 
 void printWifiList() {
-  Serial.println("WiFi networks found:");
+  Serial.println("WiFi networks ditemukan:");
   for (const auto& wifi : wifiList) {
     Serial.print("SSID: ");
     Serial.print(wifi.ssid);
     Serial.print(", RSSI: ");
     Serial.print(wifi.rssi);
-    Serial.print(" dBm, Security: ");
+    Serial.print(" dBm, Keamanan: ");
     Serial.println(wifi.security);
   }
 }
@@ -58,13 +58,15 @@ void loop() {
     wifiList.push_back(wifi);
   }
 
+  Serial.println("");
+
   // Tampilkan hasil pemindaian
   if (networks == 0) {
-    Serial.println("No WiFi networks found");
+    Serial.println("WiFi tidak ditemukan");
   } else {
     printWifiList();
   }
 
   // Tunggu beberapa detik sebelum melakukan pemindaian berikutnya
-  delay(5000);
+  delay(15000);
 }

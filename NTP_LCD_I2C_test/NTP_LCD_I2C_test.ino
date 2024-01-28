@@ -4,9 +4,8 @@
 #include <LiquidCrystal_I2C.h>
 
 // Setup Wifi
-const char *ssid     = "UPTOME";
-const char *password = "kurniasandi";
-
+const char *ssid     = "INTRUKTUR-TAV-2.4G";
+const char *password = "skanebabisa1";
 
 const long utcOffsetInSeconds = 25200;
 
@@ -16,7 +15,7 @@ char daysOfTheWeek[7][12] = {"Minggu ", "Senin  ", "Selasa ", "Rabu   ", "Kamis 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "id.pool.ntp.org", utcOffsetInSeconds);
-LiquidCrystal_I2C lcd(0x3F, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 void setup(){
   Serial.begin(115200);
@@ -34,7 +33,7 @@ void setup(){
   lcd.backlight();
 
   lcd.setCursor(0, 0);
-  lcd.print(">> ESE Project >");
+  lcd.print(">> TE Project >>");
   lcd.setCursor(0, 1);      
   lcd.print("JAM NTP - IoT >>");
 

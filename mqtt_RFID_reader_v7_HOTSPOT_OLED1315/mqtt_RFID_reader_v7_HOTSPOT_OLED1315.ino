@@ -325,131 +325,166 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.println("Start");
-  delay(1000);
-
-  // EEPROM config
-  ssidNew = readStringFromEEPROM(0);
-  passNew = readStringFromEEPROM(64);
-
-  // Set bus speed to 400 kHz
-  u8g2.setBusClock(400000);
-  u8g2.setContrast(255);  // Set contrast to maximum
-
-  u8g2.clearBuffer();                  // clear the internal memory
-  u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-  drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-  u8g2.sendBuffer();
 
   boot("booting...");
 
-  // Get ESP8266 Chip ID
-  int num = ESP.getChipId();
-  itoa(num, chipID, 10);
+  // pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZ_PIN, OUTPUT);
+  // pinMode(OKE_PIN, OUTPUT);
+  pinMode(SET_BTN, INPUT);
 
-  // Congig WiFi
-  // Jika ada nilai SSID dan password di EEPROM, coba terhubung ke WiFi
-  if (ssidNew != "" && passNew != "") {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssidNew.c_str(), passNew.c_str());
+  delay(1000);
 
-    int attempts = 0;
+  if (digitalRead(SET_BTN) == HIGH) {
+    digitalWrite(D0, HIGH);
+    delay(100);
+    digitalWrite(D0, LOW);
+
+    Serial.println("Tombol Ditekan");
+
+    modeAPaktif = true;
+
     startTimeBootLoad = millis();
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-      delay(1000);
-      Serial.print(".");
-      bootLoad("Menyambung ke WiFi");
-      attempts++;
-    }
+    buzz(1);
+    bootLoad("Memulai Mode AP");
+    delay(1000);
+    // Tombol ditekan selama 5 detik atau lebih, pindah ke mode Akses Poin
+    bukaAP("Memulai mode Akses Poin...");
+  } else {
+    // EEPROM config
+    ssidNew = readStringFromEEPROM(0);
+    passNew = readStringFromEEPROM(64);
 
-    if (WiFi.status() == WL_CONNECTED) {
-      modeAPaktif = false;
-      Serial.println("");
-      Serial.println("Terhubung Ke Jaringan");
+    // Set bus speed to 400 kHz
+    u8g2.setBusClock(400000);
+    u8g2.setContrast(255);  // Set contrast to maximum
 
-      ssidNew = readStringFromEEPROM(0);
-      passNew = readStringFromEEPROM(64);
-      nodeviceNew = readStringFromEEPROM(192);
-      hostNew = readStringFromEEPROM(256);
+    u8g2.clearBuffer();                  // clear the internal memory
+    u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
+    drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+    u8g2.sendBuffer();
 
-      strcpy(nodevice, nodeviceNew.length() > 0 ? nodeviceNew.c_str() : nodevice);
-      strcpy(mqtt_server, hostNew.length() > 0 ? hostNew.c_str() : mqtt_server);
+    // Get ESP8266 Chip ID
+    int num = ESP.getChipId();
+    itoa(num, chipID, 10);
 
-      Serial.print("SSID: ");
-      Serial.println(ssidNew);
-      Serial.print("pass: ");
-      Serial.println(passNew);
-      Serial.print("nodevice: ");
-      Serial.println(nodeviceNew);
-      Serial.print("host: ");
-      Serial.println(hostNew);
-      Serial.println();
+    // Congig WiFi
+    // Jika ada nilai SSID dan password di EEPROM, coba terhubung ke WiFi
+    if (ssidNew != "" && passNew != "") {
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(ssidNew.c_str(), passNew.c_str());
 
-      displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
-
-      Serial.println();
-      Serial.println("Tersambung ke WiFi");
-      Serial.println();
-
-      Serial.println("IP Address: ");
-      Serial.println(WiFi.localIP());
-      Serial.println("MAC Address: ");
-      Serial.println(WiFi.macAddress());
-
-      // tampilkan idchip
-      Serial.println("Chip ID: ");
-      Serial.println(chipID);
-
-      delay(1000);
-
-      // Setup MQTT client
-      client.setServer(mqtt_server, mqtt_port);
-      client.setCallback(callback);
-
-      SPI.begin();
-      mfrc522.PCD_Init();
-
+      int attempts = 0;
       startTimeBootLoad = millis();
-      while (!client.connected()) {
-        bootLoad("Menyambungkan ke Server..");
-        if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
-          modeAPaktif = false;
-          if (aktifSerialMsg)
-            Serial.println("Tersambung ke MQTT Broker");
-
-          buzzBasedOnMessage("200");
-        } else {
-          modeAPaktif = true;
-          Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
-
-          displayIconStatusText("SIAPP: SERVER", "Gagal konek Server!", epd_bitmap_x_3x);
-        }
+      while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        Serial.println(attempts);
+        delay(1000);
+        Serial.print(".");
+        bootLoad("Menyambung ke WiFi");
+        attempts++;
       }
 
-      // Subscribe to a topic
-      String topic = "responServer_";
-      topic += nodevice;
-      client.subscribe(topic.c_str(), 0);
+      // if (WiFi.status() != WL_CONNECTED) {
+      //   Serial.println("Gagal Konek Wifi");
+      //   // displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
+      //   // delay(2000);
+      //   bukaAP("wifi gagal konek. Memulai mode Akses Poin...");
+      // }
 
-      displayIconStatusText(nodevice, "Tersambung ke Server", epd_bitmap_check_3x);
+      if (WiFi.status() == WL_CONNECTED) {
+        modeAPaktif = false;
+        Serial.println("");
+        Serial.println("Terhubung Ke Jaringan");
 
-      // Initialize a NTPClient to get time
-      timeClient.begin();
-      int GMT = 7;
-      timeClient.setTimeOffset(3600 * GMT);
+        ssidNew = readStringFromEEPROM(0);
+        passNew = readStringFromEEPROM(64);
+        nodeviceNew = readStringFromEEPROM(192);
+        hostNew = readStringFromEEPROM(256);
 
-      buzz(2);
+        strcpy(nodevice, nodeviceNew.length() > 0 ? nodeviceNew.c_str() : nodevice);
+        strcpy(mqtt_server, hostNew.length() > 0 ? hostNew.c_str() : mqtt_server);
 
-      Serial.println("Tempelkan kartu RFID..");
+        Serial.print("SSID: ");
+        Serial.println(ssidNew);
+        Serial.print("pass: ");
+        Serial.println(passNew);
+        Serial.print("nodevice: ");
+        Serial.println(nodeviceNew);
+        Serial.print("host: ");
+        Serial.println(hostNew);
+        Serial.println();
+
+        displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
+
+        Serial.println();
+        Serial.println("Tersambung ke WiFi");
+        Serial.println();
+
+        Serial.println("IP Address: ");
+        Serial.println(WiFi.localIP());
+        Serial.println("MAC Address: ");
+        Serial.println(WiFi.macAddress());
+
+        // tampilkan idchip
+        Serial.println("Chip ID: ");
+        Serial.println(chipID);
+
+        delay(1000);
+
+        // Setup MQTT client
+        client.setServer(mqtt_server, mqtt_port);
+        client.setCallback(callback);
+
+        SPI.begin();
+        mfrc522.PCD_Init();
+
+        startTimeBootLoad = millis();
+        while (!client.connected()) {
+          bootLoad("Menyambungkan ke Server..");
+          if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
+            modeAPaktif = false;
+            if (aktifSerialMsg)
+              Serial.println("Tersambung ke MQTT Broker");
+
+            buzzBasedOnMessage("200");
+          } else {
+            modeAPaktif = true;
+            Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
+
+            displayIconStatusText("SIAPP: SERVER", "Gagal konek Server!", epd_bitmap_x_3x);
+          }
+        }
+
+        // Subscribe to a topic
+        String topic = "responServer_";
+        topic += nodevice;
+        client.subscribe(topic.c_str(), 0);
+
+        displayIconStatusText(nodevice, "Tersambung ke Server", epd_bitmap_check_3x);
+
+        // Initialize a NTPClient to get time
+        timeClient.begin();
+        int GMT = 7;
+        timeClient.setTimeOffset(3600 * GMT);
+
+        buzz(2);
+
+        Serial.println("Tempelkan kartu RFID..");
+      } else {
+        modeAPaktif = true;
+        // bukaAP("wifi gagal konek. Memulai mode Akses Poin...");
+        buzz(1);
+        bootLoad("Memulai Mode AP");
+        delay(1000);
+        // Tombol ditekan selama 5 detik atau lebih, pindah ke mode Akses Poin
+        bukaAP("Memulai mode Akses Poin...");
+      }
     } else {
       modeAPaktif = true;
-      displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
+      displayIconStatusText(ssidNew.c_str(), "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
       delay(1000);
+      bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
     }
-  } else {
-    modeAPaktif = true;
-    displayIconStatusText(ssidNew.c_str(), "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
-    delay(1000);
-    bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
   }
 
   server.on("/", HTTP_GET, handleRoot);
@@ -457,11 +492,6 @@ void setup() {
   server.on("/action_page", HTTP_POST, handleForm);
   server.on("/reboot", handleReboot);
   server.onNotFound(handleNotFound);
-
-  // pinMode(LED_PIN, OUTPUT);
-  pinMode(BUZ_PIN, OUTPUT);
-  // pinMode(OKE_PIN, OUTPUT);
-  pinMode(SET_BTN, INPUT);
 
   client.disconnect();
   buzz(2);

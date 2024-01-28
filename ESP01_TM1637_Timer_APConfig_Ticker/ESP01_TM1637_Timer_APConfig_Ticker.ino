@@ -147,6 +147,8 @@ void handleSaveConfig(AsyncWebServerRequest *request) {
   timeLeft = countdownDuration;
   printTime(timeLeft);
 
+  once_buz();
+
   String alert = "<div id=\"alert\"><p>Berhasil Simpan</p></div>";
   String formattedHtml = String(config_html);
   formattedHtml.replace("%alert%", alert);
@@ -163,7 +165,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
 
 void handleReboot(AsyncWebServerRequest *request) {
   request->send(200, "text/html", selesai_html);
-  delay(5000);
+  once_buz();
+  delay(3000);
   ESP.restart();
 }
 
@@ -178,13 +181,16 @@ void handleHome(AsyncWebServerRequest *request) {
 
   if (runParam == "true") {
     timerBerjalan = true;
+    once_buz();
     playPauseTimer();
   } else if (runParam == "false") {
     timerBerjalan = false;
+    once_buz();
     playPauseTimer();
   } else if (runParam == "reset") {
     if (timerBerjalan == false) {
       resetTimer();
+      once_buz();
     }
   }
 
@@ -318,6 +324,7 @@ void setup() {
     handleNotFound(request);
   });
 
+  once_buz();
 
   // Catat waktu mulai
   startTime = millis();
@@ -330,8 +337,6 @@ void setup() {
   } else {
     tampilTimer(runMenit, runDetik);
   }
-
-  delay(3000);
 }
 
 void loop() {
@@ -353,7 +358,7 @@ void bacaTombol() {
   // Deteksi perubahan pada tombol
   if (buttonState != lastButtonState) {
     // Tunggu hingga tombol stabil
-    delay(50);
+    once_buz();
 
     // Ubah status timerBerjalan berdasarkan tombol
     if (buttonState == LOW) {
@@ -369,7 +374,7 @@ void bacaTombol() {
   // Deteksi perubahan pada tombol reset
   if (resetButtonState != lastResetButtonState) {
     // Tunggu hingga tombol reset stabil
-    delay(50);
+    once_buz();
 
     // Reset timer jika tombol reset ditekan saat timer berhenti
     if (resetButtonState == LOW) {
@@ -407,6 +412,12 @@ void stopStatusTimer() {
   }
 }
 
+void once_buz() {
+  digitalWrite(BUZZER, HIGH);
+  delay(50);
+  digitalWrite(BUZZER, LOW);
+}
+
 void buz() {
   if (timerBerhenti) {
     if (tampilanStop) {
@@ -437,7 +448,7 @@ void playPauseTimer() {
 void resetTimer() {
   if (!timerBerjalan) {
     digitalWrite(BUZZER, LOW);
-    
+
     timer.detach();
     display.clear();
 
@@ -455,8 +466,6 @@ void resetTimer() {
 
     timeLeft = countdownDuration;
     printTime(timeLeft);
-
-
   }
 }
 
