@@ -58,7 +58,7 @@ AsyncStaticWebHandler& AsyncStaticWebHandler::setCacheControl(const char* cache_
 }
 
 AsyncStaticWebHandler& AsyncStaticWebHandler::setLastModified(const char* last_modified){
-  _last_modified = String(last_modified);
+  _last_modified = last_modified;
   return *this;
 }
 
@@ -205,7 +205,9 @@ void AsyncStaticWebHandler::handleRequest(AsyncWebServerRequest *request)
       return request->requestAuthentication();
 
   if (request->_tempFile == true) {
-    String etag = String(request->_tempFile.size());
+    time_t lw = request->_tempFile.getLastWrite();    // get last file mod time (if supported by FS)
+    if (lw) setLastModified(gmtime(&lw));
+    String etag(lw ? lw : request->_tempFile.size());   // set etag to lastmod timestamp if available, otherwise to size
     if (_last_modified.length() && _last_modified == request->header(F("If-Modified-Since"))) {
       request->_tempFile.close();
       request->send(304); // Not modified

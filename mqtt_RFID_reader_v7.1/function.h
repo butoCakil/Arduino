@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "core_esp8266_features.h"
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer
 const char* buzzerCodes[] = {
@@ -36,13 +37,13 @@ const char* buzzerCodes[] = {
   "BMIJ", ".."    // 29
 };
 
-
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 String weekDays[7] = { "Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab" };
 String months[12] = { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des" };
 
+// LCD OLED START
 
 // 'check-3x', 24x24px
 const unsigned char epd_bitmap_check_3x[] = {
@@ -190,7 +191,7 @@ void drawWrappedText(const char* text, int centerX, int centerY, int maxWidth, c
   free(mutableText);
 }
 
-void boot(const char* textboot) {
+void boot(const char* textboot, const char* texttitle) {
   // Set the position and size of the loading bar
   int barWidth = 100;
   int barHeight = 10;
@@ -200,6 +201,7 @@ void boot(const char* textboot) {
   // Draw the loading bar with a changing progress value
   for (float progress = 0.0; progress <= 1.0; progress += 0.1) {
     u8g2.clearBuffer();
+    drawWrappedText(texttitle, screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
     drawLoadingBar(barCenterX, barCenterY, barWidth, barHeight, progress);
     drawWrappedText(textboot, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
@@ -245,7 +247,6 @@ void iconBMP(int pilih_iconBMP) {
   }
 }
 
-
 void ntp() {
   timeClient.update();
   time_t epochTime = timeClient.getEpochTime();
@@ -255,28 +256,12 @@ void ntp() {
   int monthDay = ptm->tm_mday;
   int currentMonth = ptm->tm_mon + 1;
 
-  // String currentMonth_2digit;
-
-  // if (currentMonth < 10) {
-  //   currentMonth_2digit = "0" + String(currentMonth);
-  // } else {
-  //   currentMonth_2digit = String(currentMonth);
-  // }
-
   String currentMonthName = months[currentMonth - 1];
   int currentYear = ptm->tm_year + 1900;
   int lastTwoDigits = currentYear % 100;
 
   String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + lastTwoDigits;
-  // String hariTanggal = weekDay + ", " + monthDay + " " + currentMonthName + " " + currentYear;
-  // Serial.print("Current date: ");
-  // Serial.println(hariTanggal);
-
   String timestamp = timeClient.getFormattedTime();
-  // String timestamp = String(currentYear) + "-" + currentMonth_2digit + "-" + String(monthDay) + " " + timeClient.getFormattedTime();
-  // Serial.print("timestamp: ");
-  // Serial.println(timestamp);
-  // Serial.println("");
 
   drawWrappedText(timestamp.c_str(), 102, 24, screenWidth, u8g2_font_6x10_tf);
   drawWrappedText(hariTanggal.c_str(), screenWidth / 2, 64, screenWidth, u8g2_font_6x10_tf);
@@ -362,6 +347,16 @@ void noLoadBarJustText(const char* _textnya) {
   u8g2.sendBuffer();
 }
 
+void noLoadBarJustTextTitle(const char* _textnya, const char* texttitle) {
+  u8g2.clearBuffer();
+  drawWrappedText(texttitle, screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
+  drawLoadingBar(screenWidth / 2, screenHeight / 2, 100, 10, 0.7);
+  drawWrappedText(_textnya, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+  u8g2.sendBuffer();
+}
+
+// LCD OLED FINISH
+
 int bacaTag() {
   if (!tungguRespon && modeAPaktif == false) {
     u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_60);
@@ -414,6 +409,16 @@ void buzz_er(String _kode) {
   delay(1000);
 }
 
+void ledSuccess(bool state) {
+  if (state == 1) {
+    // Kondisi Sukses
+  } else if (state == 2) {
+    // kondisi mode AP
+  } else {
+    // kondisi Gagal / Error
+  }
+}
+
 void buzzBasedOnMessage(const char* message) {
   nom = 0;
   for (int i = 0; i < sizeof(buzzerCodes) / sizeof(buzzerCodes[0]); i += 2) {
@@ -431,34 +436,28 @@ void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   startTimeBootLoad = millis();
   while (!client.connected()) {
+    ledSuccess(0);
+
     if (aktifSerialMsg)
       Serial.println("Menyambungkan ke MQTT Broker...");
 
-    bootLoad("Menyambungkan ke Server..");
     // Coba terhubung ke broker MQTT
     if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
       if (aktifSerialMsg)
         Serial.println("Tersambung ke MQTT Broker");
 
-      noLoadBarJustText("Tersambung ke Server");
-
       // Langganan topik yang Anda butuhkan di sini jika diperlukan
       String topic = "responServer_";
       topic += nodevice;
       client.subscribe(topic.c_str(), 0);
+
+      ledSuccess(1);
     } else {
+      ledSuccess(0);
+
+      noLoadBarJustText("Gagal! Ulangi Tag Kartu");
+
       buzzBasedOnMessage("400");
-
-      u8g2.clearBuffer();
-      drawWrappedText("Gagal terhubung, Koneksi Ulang", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
-
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_luBIS08_tf);
-      drawWrappedText("SIAPP", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-      u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_x_3x);
-      drawWrappedText("Gagal konek Server!", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
 
       Serial.print("MQTT Gagal, rc=");
       Serial.print(client.state());
@@ -490,20 +489,14 @@ String sendCardIdToServer(String cardId) {
 
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
-    u8g2.clearBuffer();
-    u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_check_3x);
-    drawWrappedText("Data Terkirim!", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-    // drawWrappedText("Data Terkirim!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
-    u8g2.sendBuffer();
-
-    // Terkirim
+    ledSuccess(1);
   } else {
+    ledSuccess(0);
+
+    noLoadBarJustText("Mengirim ulang ke Server");
+
     buzzBasedOnMessage("400");
     Serial.println("Koneksi ke MQTT Broker gagal");
-
-    u8g2.clearBuffer();
-    drawWrappedText("Gagal mengirim ke server!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_luBIS08_tf);
-    u8g2.sendBuffer();
 
     reconnect();
   }
@@ -511,20 +504,8 @@ String sendCardIdToServer(String cardId) {
   return jsonResponse;
 }
 
-void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_luBIS08_tf);
-  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
-  u8g2.drawXBM(52, 16, 24, 24, _icon);
-  drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-  u8g2.sendBuffer();
-}
-
-
 void printWifiList() {
   Serial.println("WiFi networks ditemukan:");
-  displayIconStatusText(ssidNew.c_str(), "WiFi network ditemukan..", epd_bitmap_check_3x);
-
   injekHtml = "";
   injekHtml = "<div id=\"listssid\" class=\"listssid\">";
 
@@ -588,18 +569,15 @@ void findWifi() {
   if (networks == 0) {
     Serial.println("WiFi tidak ditemukan. REBOOT / Config Manual");
     injekHtml = "WiFi tidak ditemukan. REBOOT / Config Manual";
-    displayIconStatusText(ssidNew.c_str(), "WiFi tidak ditemukan. REBOOT / Config Manual", epd_bitmap_x_3x);
     delay(2000);
   } else {
     startTimeBootLoad = millis();
-    bootLoad("Memuat hasil Pencarian WiFi...");
     printWifiList();
   }
 }
 
 void searchingWifi() {
   startTimeBootLoad = millis();
-  bootLoad("Mencari SSID WiFi Sekitar...");
   findWifi();
 }
 
@@ -638,12 +616,19 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
 
   if (error) {
+    ledSuccess(0);
+
     pesanJSON = "500";
     Serial.print("gagal to parse JSON: ");
     Serial.println(error.c_str());
 
     u8g2.clearBuffer();
-    drawWrappedText("Gagal Proses Pesan!", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
+    u8g2.drawBox(0, 0, screenWidth, 12);
+    u8g2.setDrawColor(0);
+    u8g2.setFont(u8g2_font_luBIS08_tf);
+    u8g2.drawStr(48, 10, "INFO:");
+    u8g2.setDrawColor(1);
+    drawWrappedText("Gagal Proses Pesan dari Server!", (screenWidth / 2), (screenHeight / 2) - 5, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
   } else {
     // Mengakses elemen-elemen JSON yang benar
@@ -670,28 +655,14 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
       }
 
       if (strcmp(_nodevice, json_nodevice) == 0 && strcmp("406", json_message) != 0) {
+        ledSuccess(1);
+
         if (aktifSerialMsg) {
           Serial.print("ID & Nomor Device Sesuai! ");
           Serial.println();
         }
 
-        // Find the position of the search string
-        const char* startPos = strstr(json_info, "--");
-
-        // If the search string is found, replace it
-        while (startPos != nullptr) {
-          char buffer[100];  // Adjust the size according to your needs
-          strncpy(buffer, json_info, startPos - json_info);
-          buffer[startPos - json_info] = '\0';  // Null-terminate the substring
-          strcat(buffer, ", ");
-          strcat(buffer, startPos + strlen("--"));
-
-          // Copy the modified string back to the json_info
-          strcpy(const_cast<char*>(json_info), buffer);
-
-          // Find the position of the search string in the modified text
-          startPos = strstr(json_info, "--");
-        }
+        pesanJSON = json_message;
 
         u8g2.clearBuffer();
         u8g2.drawBox(0, 0, screenWidth, 12);
@@ -699,14 +670,13 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         u8g2.setFont(u8g2_font_luBIS08_tf);
         u8g2.drawStr(48, 10, "INFO:");
         u8g2.setDrawColor(1);
-        // iconBMP(1);
         drawWrappedText(json_info, (screenWidth / 2), (screenHeight / 2) - 5, screenWidth, u8g2_font_7x13_tf);
-        // drawWrappedText(json_info, 75, 25, screenWidth * 0.75, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
-        pesanJSON = json_message;
         json_info = "";
       } else {
+        ledSuccess(0);
+
         Serial.println("ID & Nomor Device Tidak Sesuai...!");
         Serial.println("Permintaan tidak direspon.");
 
@@ -721,9 +691,13 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         // drawWrappedText("Data tidak direspon", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
         u8g2.sendBuffer();
 
+        delay(1000);
+
         pesanJSON = "501";
       }
     } else {
+      ledSuccess(0);
+
       // Elemen "nodevice" tidak ada dalam JSON
       Serial.println("Elemen \"nodevice\" tidak ada dalam JSON.");
       Serial.println("Permintaan tidak direspon.");
@@ -739,7 +713,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
       // drawWrappedText("Data tidak direspon server", screenWidth / 2, screenHeight / 2, screenWidth, u8g2_font_7x13_tf);
       u8g2.sendBuffer();
 
-      delay(2000);
+      delay(1000);
 
       u8g2.clearBuffer();
       iconBMP(2);
@@ -769,8 +743,9 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   if (pesanJSON) {
     buzzBasedOnMessage(pesanJSON);
     iconCenter(pesanJSON);
-    delay(1000);
   }
+
+  delay(1000);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {

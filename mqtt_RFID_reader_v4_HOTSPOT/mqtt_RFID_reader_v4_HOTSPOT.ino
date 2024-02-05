@@ -18,12 +18,12 @@ boolean modeHotspot = false;
 
 // WiFi credentials
 // ASSEMBLY TE - CNC
-const char* ssid = "ASSEMBLY ONLY";
-const char* password = "onlyassemblytebos";
+// const char* ssid = "ASSEMBLY ONLY";
+// const char* password = "onlyassemblytebos";
 
 // INSTRUKTUR TE - 2.4G
-// const char* ssid = "INTRUKTUR-TAV-2.4G";
-// const char* password = "skanebabisa1";
+const char* ssid = "INTRUKTUR-TAV-2.4G";
+const char* password = "skanebabisa1";
 
 // FABRIKASI TE / LGT
 // const char* ssid = "MuT@n";
@@ -39,8 +39,8 @@ const char* password = "onlyassemblytebos";
 
 // MQTT Broker Configuration
 // char nodevice[20] = "2309G005";  // GERBANG / PRESENSI MASUK (max 20 characters)
-char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
-// char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
+// char nodevice[20] = "2309MAS004";  // PEMBIASAAN MASJID (max 20 characters)
+char nodevice[20] = "2309IZ001";      // POS SATPAM (IJIN) (max 20 characters)
 // char nodevice[20] = "2309NA003";  // PEMBIASAAN MASJID (max 20 characters)
 
 const char* mqtt_server = "172.16.80.123";  // Ganti dengan alamat IP broker MQTT Anda

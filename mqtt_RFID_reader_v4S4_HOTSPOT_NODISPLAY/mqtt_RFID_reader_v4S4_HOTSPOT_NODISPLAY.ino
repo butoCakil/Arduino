@@ -1,24 +1,12 @@
-#include <ESP8266WiFi.h>
-#include <vector>
-#include <ESP8266WebServer.h>
-#include <WiFiClient.h>
-#include <MFRC522.h>
-#include <PubSubClient.h>
+#include <Arduino.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
-
-#include <Arduino.h>
-#include <U8g2lib.h>
-
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-
-#ifdef U8X8_HAVE_HW_SPI
-#include <SPI.h>
-#endif
-#ifdef U8X8_HAVE_HW_I2C
-#include <Wire.h>
-#endif
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <PubSubClient.h>
+#include <MFRC522.h>
+#include <WiFiClient.h>
+#include <vector>
 
 #include "index.h"
 #include "login.h"
@@ -28,7 +16,7 @@
 boolean modeHotspot = false;
 
 // MQTT Broker Configuration
-char nodevice[20] = "NONAME";
+char nodevice[20] = "";
 
 char* mqtt_server = "172.16.80.123";
 
@@ -36,15 +24,15 @@ const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
 const char* mqtt_password = "1234";  // Password MQTT Anda
 
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE);  //Software I2C
-
 boolean aktifSerialMsg = false;
 boolean autoRestart = false;
 boolean tungguRespon = false;
 boolean saatnyaRestart = false;
 boolean modeAPaktif = false;
 
-#define BUZ_PIN D0  // D0 - MERAH
+#define BUZ_PIN D1  // D0 - MERAH BUZZER
+#define LED_PIN D0  // D0 - BIRU
+#define OKE_PIN D2  // D2 - HIJAU
 #define SET_BTN D8  // Push BUtton SET
 
 // RFID
@@ -75,16 +63,18 @@ unsigned long lastRFIDReadTime = 0;
 const unsigned long RFID_READ_INTERVAL = 600000;  // 10 menit dalam milidetik (10 * 60 * 1000)
 
 unsigned long lastTunggurespon = 0;
-const unsigned long TUNGGU_RESPON_SERVER = 10000;
+const unsigned long TUNGGU_RESPON_SERVER = 5000;
+
+unsigned long previousLEDmqtt = 0;
+const long intervalLEDmqtt = 100;
+const long intervalLEDmqtt2 = 500;
 
 // Waktu mulai BootLoad
 unsigned long startTimeBootLoad;
 
 int nom;
+int tick = 0;
 int networks;
-
-int screenWidth = u8g2.getWidth();
-int screenHeight = u8g2.getHeight();
 
 // EEPROM Konfigurasi
 const int eepromSize = 512;
@@ -198,13 +188,11 @@ void handelLogin() {
 void handleReboot() {
   server.send(200, "text/html", selesai_html);
   buzzBasedOnMessage("400");
-  boot("Restart dalam 3 detik");
   delay(2000);
   ESP.restart();
 }
 
 void handleForm() {
-  bootLoad("Menyimpan Config...");
   ssidNew = server.arg("ssidNew");
   passNew = server.arg("passNew");
   nodeviceNew = server.arg("nodevice");
@@ -223,8 +211,6 @@ void handleForm() {
 
   // jangan menyimpan config kosong
   if (ssidNew == "" && hostNew == "" && nodeviceNew == "") {
-    displayIconStatusText(ssidNew.c_str(), "Gagal simpan Config, Ulangi SET Config!", epd_bitmap_x_3x);
-
     String formattedHtml = String(error_html);
     formattedHtml.replace("%s", "GAGAL melakukan Konfigurasi");
     formattedHtml.replace("%c", "/setting");
@@ -246,12 +232,9 @@ void handleForm() {
     server.send(200, "text/html", formattedHtml);
     startTimeBootLoad = millis();
     buzz(2);
-    displayIconStatusText(ssidNew.c_str(), "Berhasil simpan Config..", epd_bitmap_check_3x);
     delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
 
     WiFi.softAPdisconnect(true);
-
-    bootLoad("Menjalankan Config...");
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssidNew.c_str(), passNew.c_str());
@@ -261,7 +244,6 @@ void handleForm() {
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(1000);
       Serial.print("i");
-      bootLoad("Menyambungkan ke WiFi...");
       attempts++;
     }
 
@@ -270,17 +252,13 @@ void handleForm() {
       // tampilkan wifi tidak dapat terhubung
       buzz(3);
       modeAPaktif = true;
-      displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
     } else {
       buzz(2);
       modeAPaktif = false;
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
-      displayIconStatusText(ssidNew.c_str(), "berhasil konek ke WiFi", epd_bitmap_check_3x);
 
-      delay(2000);
-      boot("Restart dalam 3 detik");
       delay(2000);
       buzzBasedOnMessage("400");
       ESP.restart();
@@ -310,7 +288,6 @@ void checkButton() {
 
       startTimeBootLoad = millis();
       buzz(1);
-      bootLoad("Memulai Mode AP");
       delay(1000);
       // Tombol ditekan selama 5 detik atau lebih, pindah ke mode Akses Poin
       bukaAP("Memulai mode Akses Poin...");
@@ -321,25 +298,20 @@ void checkButton() {
 }
 
 void setup() {
-  u8g2.begin();
   Serial.begin(115200);
   Serial.println();
   Serial.println("Start");
 
-  // Set bus speed to 400 kHz
-  u8g2.setBusClock(400000);
-  u8g2.setContrast(255);  // Set contrast to maximum
-
-  boot("booting...");
-
-  // pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   pinMode(BUZ_PIN, OUTPUT);
-  // pinMode(OKE_PIN, OUTPUT);
+  pinMode(OKE_PIN, OUTPUT);
   pinMode(SET_BTN, INPUT);
 
   // Get ESP8266 Chip ID
   int num = ESP.getChipId();
   itoa(num, chipID, 10);
+
+  delay(3000);
 
   // EEPROM config
   ssidNew = readStringFromEEPROM(0);
@@ -356,20 +328,10 @@ void setup() {
 
     startTimeBootLoad = millis();
     buzz(1);
-    bootLoad("Memulai Mode AP");
     delay(1000);
     // Tombol ditekan selama 5 detik atau lebih, pindah ke mode Akses Poin
     bukaAP("Memulai mode Akses Poin...");
   } else {
-    u8g2.clearBuffer();                  // clear the internal memory
-    u8g2.setFont(u8g2_font_luBIS08_tf);  // choose a suitable font
-    drawWrappedText("SMK Negeri Bansari", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-    drawWrappedText("SiAPP", screenWidth / 2, (screenHeight / 2), screenWidth, u8g2_font_luBIS14_tf);
-    u8g2.drawFrame(0, 16, 128, 1);
-    u8g2.drawFrame(0, 33, 128, 1);
-    drawWrappedText("Sistem Administrasi Presensi Pembelajaran", screenWidth / 2, 44, screenWidth, u8g2_font_luBIS08_tf);
-    u8g2.sendBuffer();
-
     delay(2000);
 
     // Congig WiFi
@@ -384,7 +346,6 @@ void setup() {
         Serial.println(attempts);
         delay(1000);
         Serial.print(".");
-        bootLoad("Menyambung ke WiFi");
         attempts++;
       }
 
@@ -418,14 +379,6 @@ void setup() {
         Serial.println(hostNew);
         Serial.println();
 
-        // displayIconStatusText(ssidNew.c_str(), "Tersambung ke WiFi", epd_bitmap_check_3x);
-
-        u8g2.clearBuffer();
-        drawWrappedText(ssidNew.c_str(), (screenWidth / 2) - 5, 5, screenWidth, u8g2_font_luBIS08_tf);
-        u8g2.drawXBM(52, 16, 24, 24, epd_bitmap_check_3x);
-        drawWrappedText("Tersambung ke WiFi", screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
-        u8g2.sendBuffer();
-
         Serial.println();
         Serial.println("Tersambung ke WiFi");
         Serial.println();
@@ -449,10 +402,7 @@ void setup() {
         mfrc522.PCD_Init();
 
         startTimeBootLoad = millis();
-
-        int lup = 0;
-        while (!client.connected() && lup < 5) {
-          bootLoad("Menyambungkan ke Server..");
+        while (!client.connected()) {
           if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
             modeAPaktif = false;
             if (aktifSerialMsg)
@@ -462,12 +412,7 @@ void setup() {
           } else {
             modeAPaktif = true;
             Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
-
-            displayIconStatusText("SIAPP: SERVER", "Gagal konek Server!", epd_bitmap_x_3x);
-            delay(1000);
           }
-
-          lup++;
         }
 
         // Subscribe to a topic
@@ -475,28 +420,18 @@ void setup() {
         topic += nodevice;
         client.subscribe(topic.c_str(), 0);
 
-        displayIconStatusText(nodevice, "Terhubung ke Server", epd_bitmap_check_3x);
-
-        // Initialize a NTPClient to get time
-        timeClient.begin();
-        int GMT = 7;
-        timeClient.setTimeOffset(3600 * GMT);
-
         buzz(2);
 
         Serial.println("Tempelkan kartu RFID..");
       } else {
         modeAPaktif = true;
-        // bukaAP("wifi gagal konek. Memulai mode Akses Poin...");
         buzz(1);
-        bootLoad("Memulai Mode AP");
         delay(1000);
         // Tombol ditekan selama 5 detik atau lebih, pindah ke mode Akses Poin
         bukaAP("Memulai mode Akses Poin...");
       }
     } else {
       modeAPaktif = true;
-      displayIconStatusText(ssidNew.c_str(), "SSID Kosong! Mulai AP..", epd_bitmap_x_3x);
       delay(1000);
       bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
     }
@@ -522,10 +457,6 @@ void loop() {
 
   client.loop();
 
-  if (modeAPaktif == false) {
-    homeLCD();
-  }
-
   if (berhasilBaca) {
     if (autoRestart) {
       lastRFIDReadTime = millis();  // Perbarui waktu terakhir pembacaan kartu RFID
@@ -535,7 +466,6 @@ void loop() {
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
       buzz(1);
-      noLoadBarJustText("Membaca ID Kartu");
       reconnect();
 
       strcpy(hasilTAG, IDTAG);
@@ -545,6 +475,9 @@ void loop() {
 
       // Send data to server and receive JSON response
       String jsonResponse = sendCardIdToServer(IDTAG);
+
+      digitalWrite(OKE_PIN, LOW);
+      digitalWrite(LED_PIN, LOW);
 
       tungguRespon = true;
       lastTunggurespon = millis();
@@ -565,10 +498,6 @@ void loop() {
 
   buzz(0);
   receivedMessage = "";
-  if (modeAPaktif == false) {
-    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x_120);
-    u8g2.sendBuffer();
-  }
 
   // Periksa apakah sudah waktunya untuk restart
   if (autoRestart) {
@@ -581,7 +510,6 @@ void loop() {
       if (aktifSerialMsg)
         Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
 
-      boot("Restart dalam 3 detik");
       buzzBasedOnMessage("400");
       delay(1000);
       ESP.restart();
@@ -592,16 +520,14 @@ void loop() {
     unsigned long currentTime2 = millis();
     if (currentTime2 - lastTunggurespon > TUNGGU_RESPON_SERVER) {
       tungguRespon = false;
-      u8g2.clearBuffer();
-      iconBMP(0);
-      drawWrappedText("Data Terkirim! Respon Timeout... ", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
-      u8g2.sendBuffer();
       buzzBasedOnMessage("500");
       delay(1000);
       client.disconnect();
       lastTunggurespon = millis();
     }
   }
+
+  standBy();
 }
 
 void bukaAP(String _text) {
@@ -620,10 +546,9 @@ void bukaAP(String _text) {
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
   server.begin();  // Mulai server dalam mode Akses Poin
+
+  delay(1000);
 
   IPAddress IP = WiFi.softAPIP();
   Serial.println("");
@@ -632,12 +557,70 @@ void bukaAP(String _text) {
   Serial.print("IP Address (AP): ");
   Serial.println(IP);
 
-  u8g2.clearBuffer();
-  drawWrappedText("MODE AKSES POIN", screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
-  drawWrappedText(ssid, screenWidth / 2, 30, screenWidth, u8g2_font_7x13_tf);
-  drawWrappedText(password ? password : "<Tidak Ada Password>", screenWidth / 2, 45, screenWidth, u8g2_font_7x13_tf);
-  drawWrappedText(IP.toString().c_str(), screenWidth / 2, 60, screenWidth, u8g2_font_7x13_tf);
-  u8g2.sendBuffer();
   buzz(2);
   client.disconnect();
+}
+
+void standBy() {
+  if (modeAPaktif == false) {
+    // Ambil waktu sekarang
+    unsigned long currentMillisLEDmqtt = millis();
+
+    // Indikator Koneksi LED JIka konek Kedil Slow, Jika diskonek kedip cepet
+    if (!client.connected()) {
+      if (tick < 1) {
+        tick = 1;
+        Serial.println("[Stanby] Tidak terkoneksi ke Server");
+        Serial.println();
+      }
+      tick++;
+      digitalWrite(OKE_PIN, LOW);
+
+      if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt2) {
+        previousLEDmqtt = currentMillisLEDmqtt;
+
+        if (digitalRead(LED_PIN) == LOW) {
+          digitalWrite(LED_PIN, HIGH);
+        } else {
+          digitalWrite(LED_PIN, LOW);
+        }
+      }
+    } else {
+      if (tick < 1) {
+        tick = 1;
+        Serial.println("Menyambungkan ke Server.. ");
+        Serial.println();
+      }
+      tick++;
+
+      if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt) {
+        previousLEDmqtt = currentMillisLEDmqtt;
+
+        if (digitalRead(LED_PIN) == LOW) {
+          digitalWrite(LED_PIN, HIGH);
+        } else {
+          digitalWrite(LED_PIN, LOW);
+        }
+      }
+    }
+  } else {
+    // logik LED mode AP
+    unsigned long mulaiBlink = millis();
+
+    if (mulaiBlink - previousLEDmqtt > 1000) {
+      previousLEDmqtt = mulaiBlink;
+
+      if (digitalRead(LED_PIN) == LOW) {
+        digitalWrite(LED_PIN, HIGH);
+      } else {
+        digitalWrite(LED_PIN, LOW);
+      }
+
+      if (digitalRead(OKE_PIN) == LOW) {
+        digitalWrite(OKE_PIN, HIGH);
+      } else {
+        digitalWrite(OKE_PIN, LOW);
+      }
+    }
+  }
 }

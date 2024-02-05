@@ -14,12 +14,12 @@ const char* hotspot = "HOTSPOT-SKANEBA";
 
 // WiFi credentials
 // ASSEMBLY TE - CNC
-const char* ssid = "ASSEMBLY ONLY";
-const char* password = "onlyassemblytebos";
+// const char* ssid = "ASSEMBLY ONLY";
+// const char* password = "onlyassemblytebos";
 
 // INSTRUKTUR TE - 2.4G
-// const char* ssid = "INTRUKTUR-TAV-2.4G";
-// const char* password = "skanebabisa1";
+const char* ssid = "INTRUKTUR-TAV-2.4G";
+const char* password = "skanebabisa1";
 
 //HOSTSPOT-SKANEBA-TU
 // const char* ssid = "HOTSPOT-SKANEBA-TU";
@@ -42,7 +42,7 @@ const char* mqtt_password = "1234";  // Password MQTT Anda
 char IDTAG[20];
 char chipID[25];  // Store ESP8266 Chip ID
 // char nodevice[20] = "2309MAS001";      // Change to your desired Node Device (max 20 characters)
-char nodevice[20] = "2309G004";        // Change to your desired Node Device (max 20 characters)
+char nodevice[20] = "2309IZ001";        // Change to your desired Node Device (max 20 characters)
 char key[50] = "1234567890987654321";  // Change to your desired Key (max 20 characters)
 
 // Membuat array untuk memetakan pesan ke kode bunyi buzzer

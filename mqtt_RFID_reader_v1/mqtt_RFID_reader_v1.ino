@@ -14,12 +14,12 @@ const char* hotspot = "HOTSPOT-SKANEBA";
 
 // WiFi credentials
 // ASSEMBLY TE - CNC
-const char* ssid = "ASSEMBLY ONLY";
-const char* password = "onlyassemblytebos";
+// const char* ssid = "ASSEMBLY ONLY";
+// const char* password = "onlyassemblytebos";
 
 // INSTRUKTUR TE - 2.4G
-// const char* ssid = "INTRUKTUR-TAV-2.4G";
-// const char* password = "skanebabisa1";
+const char* ssid = "INTRUKTUR-TAV-2.4G";
+const char* password = "skanebabisa1";
 
 //HOSTSPOT-SKANEBA-TU
 // const char* ssid = "HOTSPOT-SKANEBA-TU";
