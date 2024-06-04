@@ -218,17 +218,17 @@ button:hover{
 			<!-- HTTP_PORTAL_OPTIONS -->
 			<!-- /HTTP_PORTAL_OPTIONS -->
 			<!-- HTTP_PORTAL_MENU[] -->
-			<form action='/wifi' method='get'><button>Atur WiFi</button></form><br/>
-			<form action='/0wifi' method='get'><button>Atur WiFi (No Scan)</button></form><br/>
+			<form action='/wifi' method='get'><button>Configure WiFi</button></form><br/>
+			<form action='/0wifi' method='get'><button>Configure WiFi (No Scan)</button></form><br/>
 			<form action='/info' method='get'><button>Info</button></form><br/>
 			<form action='/param' method='get'><button>Setup</button></form><br/>
 			<Hr><br/>
-			<form action='/close' method='post'><button>Tutup</button></form><br/>
-			<form action='/erase' method='post'><button class='D'>Hapus</button></form><br/>
+			<form action='/close' method='post'><button>Close</button></form><br/>
+			<form action='/erase' method='post'><button class='D'>Erase</button></form><br/>
 			<form action='/restart' method='post'><button>Restart</button></form><br/>
-			<form action='/exit' method='post'><button>Keluar</button></form><br/>
+			<form action='/exit' method='post'><button>Exit</button></form><br/>
 			<form action='/exit' method='post'><button>Update</button></form><br/>
-			<form action='/' method='post'><button>Kembali</button></form><br/>
+			<form action='/' method='post'><button>Back</button></form><br/>
 			<!-- /HTTP_PORTAL_MENU -->
 			<!-- SAMPLE -->
 			<h2>/wifi</h2><hr>
@@ -252,7 +252,7 @@ button:hover{
 			<div><a href='#p' onclick='c(this)'>{v}</a><div role='img' aria-label='{r}%' title='{r}%' class='q q-{q} {i}'></div></div>
 			<!-- /HTTP_ITEM -->
 			<!-- HTTP_FORM_START -->
-			<form method='get' action='wifisave'><label for='s'>SSID</label><br/><input id='s' name='s' length=32 placeholder='SSID'><br/><label for='p'>Password</label><input id='p' name='p' length=64 type='password' placeholder='password'><input type='checkbox' onclick='f()'> Show Password<br/>
+			<form method='get' action='wifisave'><label for='s'>SSID</label><br/><input id='s' name='s' length=32 placeholder='SSID'><br/><label for='p'>Password</label><input id='p' name='p' length=64 type='password' placeholder='password'><input type='checkbox' id='show-password' onclick='f()'> <label for='show-password'>Show Password</label><br/>
 			<!-- /HTTP_FORM_START -->
 			<!-- SAMPLE -->
 			<h3>custom parameter</h3><hr>
@@ -266,35 +266,35 @@ button:hover{
 			<br/><input id='{i}' name='{n}' length='{l}' placeholder='{p}' value='{v}' {c}>
 			<!-- /HTTP_FORM_PARAM -->
 			<!-- HTTP_FORM_END -->
-			<br/><button type='submit'>Simpan</button></form>
+			<br/><button type='submit'>Save</button></form>
 			<!-- /HTTP_FORM_END -->
 			<!-- HTTP_SCAN_LINK -->
 			<br/><form action='/wifi' method='get'><button>Refresh</button></form>
 			<!-- /HTTP_SCAN_LINK -->
 			<!-- HTTP_SAVED -->
-			<div class='msg'><h4>Menyimpan Pengaturan</h4>Mencoba menyambungkan ESP ke jaringan.<br />Jika gagal menyambungkan kembali ke AP untuk mencoba lagi</div>
+			<div class='msg'><h4>Saving Credentials</h4>Trying to connect ESP to network.<br />If it fails reconnect to AP to try again</div>
 			<!-- /HTTP_SAVED -->
 			<!-- HTTP_STATUS_ON -->
-			<div class='msg P'><strong>Tersambung</strong> ke {v}<br/><em><small>dengan IP {i}</small></em></div>
+			<div class='msg P'><strong>Connected</strong> to {v}<br/><em><small>with IP {i}</small></em></div>
 			<!-- /HTTP_STATUS_ON -->
 			<!-- HTTP_STATUS_OFF -->
-			<div class='msg {c}'><strong>Tidak tersambung</strong> ke {v}{r}</div>
+			<div class='msg {c}'><strong>Not Connected</strong> to {v}{r}</div>
 			<!-- /HTTP_STATUS_OFF -->
 			<!-- sample -->
-			<div class='msg D'><strong>Tidak tersambung</strong> ke apname
+			<div class='msg D'><strong>Not Connected</strong> to apname
 			<!-- /sample -->
 			<!-- HTTP_STATUS_OFFPW -->
-				<br/>Gagal mengautentifikasi
+				<br/>Authentication Failure
 			<!-- /HTTP_STATUS_OFFPW -->
 			<!-- HTTP_STATUS_OFFNOAP -->
-				<br/>AP tidak ditemukan
+				<br/>AP not found
 			<!-- /HTTP_STATUS_OFFNOAP -->
 			<!-- HTTP_STATUS_OFFFAIL -->
-				<br/>Tidak bisa konek
+				<br/>Could not Connect
 			<!-- /HTTP_STATUS_OFFFAIL -->
 			</div>
 			<!-- HTTP_STATUS_NONE -->
-			<div class='msg'>Tidak ada AP</div>
+			<div class='msg'>No AP set</div>
 			<!-- /HTTP_STATUS_NONE -->
 			<!-- SAMPLE -->
 			<div class='msg P'><h4>H4 Color Header P</h4>content</div>

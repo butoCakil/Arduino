@@ -268,53 +268,42 @@ void ntp() {
 }
 
 void homeLCD() {
-  u8g2.clearBuffer();
+  if (!tungguRespon) {
+    u8g2.clearBuffer();
 
-  int rssi = WiFi.RSSI();
-  int barsignal;
+    int rssi = WiFi.RSSI();
+    int barsignal;
 
-  char rssiString[10];
-  sprintf(rssiString, "%d", rssi);
+    char rssiString[10];
+    sprintf(rssiString, "%d", rssi);
 
-  if (rssi >= (-70)) {
-    barsignal = 16;
-  } else if (rssi >= (-80)) {
-    barsignal = 12;
-  } else if (rssi >= (-90)) {
-    barsignal = 8;
-  } else if (rssi >= (-100)) {
-    barsignal = 4;
-  } else {
-    barsignal = 0;
-  }
+    if (rssi >= (-70)) {
+      barsignal = 16;
+    } else if (rssi >= (-80)) {
+      barsignal = 12;
+    } else if (rssi >= (-90)) {
+      barsignal = 8;
+    } else if (rssi >= (-100)) {
+      barsignal = 4;
+    } else {
+      barsignal = 0;
+    }
 
-  u8g2.drawXBM(0, 0, barsignal, 16, epd_bitmap_signal_2x);
-  u8g2.setFont(u8g2_font_luBIS10_tf);
-  u8g2.drawStr(27, 12, "SiAPP BOS");
-  // u8g2.setFont(u8g2_font_6x10_tf);
-  // u8g2.drawStr(96, 12, rssiString);
-  // u8g2.drawStr(116, 12, "db");
+    u8g2.drawXBM(0, 0, barsignal, 16, epd_bitmap_signal_2x);
+    u8g2.setFont(u8g2_font_luBIS10_tf);
+    u8g2.drawStr(27, 12, "SiAPP BOS");
 
-  // Text to display in the center
-  const char* centerText;
-  if (tungguRespon) {
-    // x, y, length.x, length.y
-    u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_link_intact_2x);
-    iconBMP(6);
-    centerText = "Menunggu Respon Server...";
-  } else {
+    if (rssi >= (-60)) {
+      u8g2.drawStr(15, 6, "+");
+    }
+
     u8g2.drawXBM(112, 0, 16, 16, epd_bitmap_loop_circular_2x);
     iconBMP(4);
-    centerText = "Tempelkan Kartu!";
     ntp();
-  }
 
-  if (rssi >= (-60)) {
-    u8g2.drawStr(15, 6, "+");
+    drawWrappedText("Tempelkan Kartu!", 72, 40, screenWidth * 0.75, u8g2_font_luBS08_tf);
+    u8g2.sendBuffer();
   }
-
-  drawWrappedText(centerText, 72, 40, screenWidth * 0.75, u8g2_font_luBS08_tf);
-  u8g2.sendBuffer();
 }
 
 void iconCenter(const char* _kode) {
@@ -352,6 +341,15 @@ void noLoadBarJustTextTitle(const char* _textnya, const char* texttitle) {
   drawWrappedText(texttitle, screenWidth / 2, 10, screenWidth, u8g2_font_luBIS08_tf);
   drawLoadingBar(screenWidth / 2, screenHeight / 2, 100, 10, 0.7);
   drawWrappedText(_textnya, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
+  u8g2.sendBuffer();
+}
+
+void displayIconStatusText(const char* _title, const char* _pesan, const uint8_t* _icon) {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_luBIS08_tf);
+  drawWrappedText(_title, (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
+  u8g2.drawXBM(52, 16, 24, 24, _icon);
+  drawWrappedText(_pesan, screenWidth / 2, 50, screenWidth, u8g2_font_7x13_tf);
   u8g2.sendBuffer();
 }
 
@@ -409,16 +407,6 @@ void buzz_er(String _kode) {
   delay(1000);
 }
 
-void ledSuccess(bool state) {
-  if (state == 1) {
-    // Kondisi Sukses
-  } else if (state == 2) {
-    // kondisi mode AP
-  } else {
-    // kondisi Gagal / Error
-  }
-}
-
 void buzzBasedOnMessage(const char* message) {
   nom = 0;
   for (int i = 0; i < sizeof(buzzerCodes) / sizeof(buzzerCodes[0]); i += 2) {
@@ -435,8 +423,10 @@ void buzzBasedOnMessage(const char* message) {
 void reconnect() {
   // Loop sampai terhubung ke broker MQTT
   startTimeBootLoad = millis();
-  while (!client.connected()) {
-    ledSuccess(0);
+  int waktuTungguReconnect = 0;
+
+  while (!client.connected() && waktuTungguReconnect < 5) {
+    // ledSuccess(0);
 
     if (aktifSerialMsg)
       Serial.println("Menyambungkan ke MQTT Broker...");
@@ -451,17 +441,19 @@ void reconnect() {
       topic += nodevice;
       client.subscribe(topic.c_str(), 0);
 
-      ledSuccess(1);
+      // ledSuccess(1);
     } else {
-      ledSuccess(0);
+      // ledSuccess(0);
 
-      noLoadBarJustText("Gagal! Ulangi Tag Kartu");
+      noLoadBarJustText("Mengulang Koneksi Server..");
 
       buzzBasedOnMessage("400");
 
       Serial.print("MQTT Gagal, rc=");
       Serial.print(client.state());
       Serial.println("mencoba konek lagi dalam 5 detik");
+
+      waktuTungguReconnect++;
     }
   }
 }
@@ -477,10 +469,19 @@ String sendCardIdToServer(String cardId) {
   request += "\"ipa\":\"" + WiFi.localIP().toString() + "\"";
   request += "}";
 
-  noLoadBarJustText("Mengirim ke Server");
+  u8g2.clearBuffer();
+  u8g2.drawBox(0, 0, screenWidth, 12);
+  u8g2.setDrawColor(0);
+  u8g2.setFont(u8g2_font_luBIS08_tf);
+  u8g2.drawStr(40, 10, "TUNGGU:");
+  u8g2.setDrawColor(1);
+  iconBMP(6);
+  drawWrappedText("Mengirim dan Menunggu Respon Server...", 72, 40, screenWidth * 0.75, u8g2_font_luBS08_tf);
+  u8g2.sendBuffer();
 
   if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
     String mqttTopic = "dariMCU_" + String(nodevice);
+    // String mqttTopic = "dariMCU";
 
     if (aktifSerialMsg) {
       Serial.println("Tersambung ke MQTT Broker");
@@ -489,9 +490,12 @@ String sendCardIdToServer(String cardId) {
 
     client.publish(mqttTopic.c_str(), request.c_str(), 0);
 
-    ledSuccess(1);
+    terkirim = true;
+
+    // ledSuccess(1);
   } else {
-    ledSuccess(0);
+    terkirim = false;
+    // ledSuccess(0);
 
     noLoadBarJustText("Mengirim ulang ke Server");
 
@@ -581,7 +585,6 @@ void searchingWifi() {
   findWifi();
 }
 
-
 void buzz(int loop) {
   if (loop == 0) {
     digitalWrite(BUZ_PIN, LOW);
@@ -616,7 +619,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   DeserializationError error = deserializeJson(jsonDoc, jsonResponse);
 
   if (error) {
-    ledSuccess(0);
+    client.disconnect();
 
     pesanJSON = "500";
     Serial.print("gagal to parse JSON: ");
@@ -631,6 +634,8 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
     drawWrappedText("Gagal Proses Pesan dari Server!", (screenWidth / 2), (screenHeight / 2) - 5, screenWidth, u8g2_font_7x13_tf);
     u8g2.sendBuffer();
   } else {
+    client.disconnect();
+
     // Mengakses elemen-elemen JSON yang benar
     const char* json_id = jsonDoc["respon"][0]["id"];
     const char* json_nodevice = jsonDoc["respon"][0]["nodevice"];
@@ -655,7 +660,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
       }
 
       if (strcmp(_nodevice, json_nodevice) == 0 && strcmp("406", json_message) != 0) {
-        ledSuccess(1);
+        // ledSuccess(1);
 
         if (aktifSerialMsg) {
           Serial.print("ID & Nomor Device Sesuai! ");
@@ -675,7 +680,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
 
         json_info = "";
       } else {
-        ledSuccess(0);
+        // ledSuccess(0);
 
         Serial.println("ID & Nomor Device Tidak Sesuai...!");
         Serial.println("Permintaan tidak direspon.");
@@ -696,7 +701,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
         pesanJSON = "501";
       }
     } else {
-      ledSuccess(0);
+      // ledSuccess(0);
 
       // Elemen "nodevice" tidak ada dalam JSON
       Serial.println("Elemen \"nodevice\" tidak ada dalam JSON.");
@@ -735,7 +740,7 @@ void identifyAndProcessJsonResponse(String jsonResponse, char* _nodevice) {
   }
 
   // Setelah selesai memproses respon, putuskan koneksi MQTT
-  client.disconnect();
+  // client.disconnect();
   if (aktifSerialMsg)
     Serial.println("Koneksi Selesai");
 

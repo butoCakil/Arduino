@@ -24,7 +24,7 @@ const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
 const char* mqtt_password = "1234";  // Password MQTT Anda
 
-boolean aktifSerialMsg = false;
+boolean aktifSerialMsg = true;
 boolean autoRestart = false;
 boolean tungguRespon = false;
 boolean saatnyaRestart = false;

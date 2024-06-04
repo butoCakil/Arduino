@@ -594,7 +594,7 @@ void loop() {
       tungguRespon = false;
       u8g2.clearBuffer();
       iconBMP(0);
-      drawWrappedText("Data Terkirim! Respon Timeout... ", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      drawWrappedText("Respon Timeout... ", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
       u8g2.sendBuffer();
       buzzBasedOnMessage("500");
       delay(1000);

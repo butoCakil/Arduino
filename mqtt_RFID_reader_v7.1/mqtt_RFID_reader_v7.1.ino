@@ -42,11 +42,11 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA,
 int screenWidth = u8g2.getWidth();
 int screenHeight = u8g2.getHeight();
 
-boolean aktifSerialMsg = true;
-boolean autoRestart = false;
+boolean aktifSerialMsg = false;
 boolean tungguRespon = false;
 boolean saatnyaRestart = false;
 boolean modeAPaktif = false;
+boolean terkirim = false;
 
 #define BUZ_PIN D0  // D0 - MERAH
 #define SET_BTN D8  // Push BUtton SET
@@ -80,10 +80,6 @@ const unsigned long RFID_READ_INTERVAL = 600000;  // 10 menit dalam milidetik (1
 
 unsigned long lastTunggurespon = 0;
 const unsigned long TUNGGU_RESPON_SERVER = 5000;
-
-unsigned long previousLEDmqtt = 0;
-const long intervalLEDmqtt = 100;
-const long intervalLEDmqtt2 = 500;
 
 // Waktu mulai BootLoad
 unsigned long startTimeBootLoad;
@@ -227,6 +223,9 @@ void handleForm() {
 
   // jangan menyimpan config kosong
   if (ssidNew == "" && hostNew == "" && nodeviceNew == "") {
+    displayIconStatusText(ssidNew.c_str(), "Gagal simpan Config, Ulangi SET Config!", epd_bitmap_x_3x);
+
+
     String formattedHtml = String(error_html);
     formattedHtml.replace("%s", "GAGAL melakukan Konfigurasi");
     formattedHtml.replace("%c", "/setting");
@@ -248,9 +247,12 @@ void handleForm() {
     server.send(200, "text/html", formattedHtml);
     startTimeBootLoad = millis();
     buzz(2);
+    displayIconStatusText(ssidNew.c_str(), "Berhasil simpan Config..", epd_bitmap_check_3x);
     delay(2000);  // Agar perangkat dapat mengirimkan data sebelum disconnect
 
     WiFi.softAPdisconnect(true);
+
+    bootLoad("Menjalankan Config...");
 
     WiFi.mode(WIFI_STA);
 
@@ -265,6 +267,7 @@ void handleForm() {
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(1000);
       Serial.print("i");
+      bootLoad("Menyambungkan ke WiFi...");
       attempts++;
     }
 
@@ -273,14 +276,17 @@ void handleForm() {
       // tampilkan wifi tidak dapat terhubung
       buzz(3);
       modeAPaktif = true;
+      displayIconStatusText(ssidNew.c_str(), "WiFi Gagal Konek.. RESET / Set AP", epd_bitmap_x_3x);
       delay(1000);
     } else {
       buzz(2);
       modeAPaktif = false;
       Serial.println("");
       Serial.println("Terhubung Ke Jaringan");
+      displayIconStatusText(ssidNew.c_str(), "berhasil konek ke WiFi", epd_bitmap_check_3x);
 
       delay(2000);
+      boot("Restart Device", "Tunggu...");
       buzzBasedOnMessage("400");
       ESP.restart();
     }
@@ -405,11 +411,6 @@ void setup() {
         Serial.println("");
         Serial.println("Terhubung Ke Jaringan");
 
-        // ssidNew = readStringFromEEPROM(0);
-        // passNew = readStringFromEEPROM(64);
-        // nodeviceNew = readStringFromEEPROM(192);
-        // hostNew = readStringFromEEPROM(256);
-
         strcpy(nodevice, nodeviceNew.length() > 0 ? nodeviceNew.c_str() : nodevice);
         strcpy(mqtt_server, hostNew.length() > 0 ? hostNew.c_str() : mqtt_server);
 
@@ -457,8 +458,7 @@ void setup() {
 
           if (client.connect("NodeMCUClient", mqtt_user, mqtt_password)) {
             modeAPaktif = false;
-            if (aktifSerialMsg)
-              Serial.println("Tersambung ke MQTT Broker");
+            Serial.println("Tersambung ke MQTT Broker");
 
             u8g2.clearBuffer();
             drawWrappedText(hostNew.c_str(), (screenWidth / 2) - 5, 10, screenWidth, u8g2_font_luBIS08_tf);
@@ -478,7 +478,7 @@ void setup() {
         // Subscribe to a topic
         String topic = "responServer_";
         topic += nodevice;
-        client.subscribe(topic.c_str(), 0);
+        client.subscribe(topic.c_str(), 1);
 
         buzz(2);
 
@@ -510,24 +510,20 @@ void setup() {
 }
 
 void loop() {
+  client.loop();
+
   if (WiFi.status() != WL_CONNECTED) {
     server.handleClient();
   }
-
-  checkButton();
-  int berhasilBaca = bacaTag();
-
-  client.loop();
 
   if (modeAPaktif == false) {
     homeLCD();
   }
 
-  if (berhasilBaca) {
-    if (autoRestart) {
-      lastRFIDReadTime = millis();  // Perbarui waktu terakhir pembacaan kartu RFID
-    }
+  int berhasilBaca = bacaTag();
+  checkButton();
 
+  if (berhasilBaca) {
     static char hasilTAG[20] = "";  // Store previous tag ID
 
     if (strcmp(hasilTAG, IDTAG) != 0) {
@@ -563,35 +559,31 @@ void loop() {
   buzz(0);
   receivedMessage = "";
 
-  // Periksa apakah sudah waktunya untuk restart
-  if (autoRestart) {
-    unsigned long currentTime = millis();
-    if (currentTime - lastRFIDReadTime > RFID_READ_INTERVAL) {
-      saatnyaRestart = true;
-    }
-
-    if (saatnyaRestart) {
-      if (aktifSerialMsg)
-        Serial.println("Tidak ada aktifitas pembacaan kartu RFID selama 10 menit. Melakukan restart...");
-
-      buzzBasedOnMessage("400");
-      delay(1000);
-      ESP.restart();
-    }
-  }
-
   if (tungguRespon) {
     unsigned long currentTime2 = millis();
     if (currentTime2 - lastTunggurespon > TUNGGU_RESPON_SERVER) {
       tungguRespon = false;
+
+      u8g2.clearBuffer();
+
+      if (terkirim) {
+        iconBMP(5);
+        drawWrappedText("Dicoba lagi! Server tidak mengirim Respon...", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      } else {
+        iconBMP(2);
+        drawWrappedText("Data Gagal kirim. Request Timeout... ", 72, screenHeight / 2, screenWidth * 0.75, u8g2_font_7x13_tf);
+      }
+      u8g2.sendBuffer();
+
       buzzBasedOnMessage("500");
       delay(1000);
       client.disconnect();
       lastTunggurespon = millis();
+      u8g2.clearBuffer();
+      client.disconnect();
+      terkirim = false;
     }
   }
-
-  standBy();
 }
 
 void bukaAP(String _text) {
@@ -630,68 +622,4 @@ void bukaAP(String _text) {
 
   buzz(2);
   client.disconnect();
-}
-
-void standBy() {
-  if (modeAPaktif == false) {
-    // Ambil waktu sekarang
-    unsigned long currentMillisLEDmqtt = millis();
-
-    // Indikator Koneksi LED JIka konek Kedil Slow, Jika diskonek kedip cepet
-    if (!client.connected()) {
-      if (tick < 1) {
-        tick = 1;
-        Serial.println("[Stanby] Tidak terkoneksi ke Server");
-        Serial.println();
-      }
-      tick++;
-      // digitalWrite(OKE_PIN, LOW);
-
-      if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt2) {
-        previousLEDmqtt = currentMillisLEDmqtt;
-
-        // if (digitalRead(LED_PIN) == LOW) {
-        //   digitalWrite(LED_PIN, HIGH);
-        // } else {
-        //   digitalWrite(LED_PIN, LOW);
-        // }
-      }
-    } else {
-      if (tick < 1) {
-        tick = 1;
-        Serial.println("Menyambungkan ke Server.. ");
-        Serial.println();
-      }
-      tick++;
-
-      if (currentMillisLEDmqtt - previousLEDmqtt >= intervalLEDmqtt) {
-        previousLEDmqtt = currentMillisLEDmqtt;
-
-        // if (digitalRead(LED_PIN) == LOW) {
-        //   digitalWrite(LED_PIN, HIGH);
-        // } else {
-        //   digitalWrite(LED_PIN, LOW);
-        // }
-      }
-    }
-  } else {
-    // logik LED mode AP
-    unsigned long mulaiBlink = millis();
-
-    if (mulaiBlink - previousLEDmqtt > 1000) {
-      previousLEDmqtt = mulaiBlink;
-
-      // if (digitalRead(LED_PIN) == LOW) {
-      //   digitalWrite(LED_PIN, HIGH);
-      // } else {
-      //   digitalWrite(LED_PIN, LOW);
-      // }
-
-      // if (digitalRead(OKE_PIN) == LOW) {
-      //   digitalWrite(OKE_PIN, HIGH);
-      // } else {
-      //   digitalWrite(OKE_PIN, LOW);
-      // }
-    }
-  }
 }
