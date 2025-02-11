@@ -25,9 +25,9 @@ String StringJam = String(runJam < 10 ? "0" + String(runJam) : String(runJam)) +
 boolean lastButtonState = HIGH;
 boolean buttonState = HIGH;
 
-#define RESET_BUTTON_PIN 4  //D2
-boolean lastResetButtonState = HIGH;
-boolean resetButtonState = HIGH;
+// #define RESET_BUTTON_PIN 4  //D2
+// boolean lastResetButtonState = HIGH;
+// boolean resetButtonState = HIGH;
 
 #define BUZZER 14  //D5
 #define LOAD 12    //D6
@@ -254,7 +254,7 @@ void setup() {
   setDetik = readStringFromEEPROM(128);
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
+  // pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
   pinMode(BUZZER, OUTPUT);
   pinMode(LOAD, OUTPUT);
   pinMode(CLK, OUTPUT);
@@ -343,8 +343,8 @@ void loop() {
   bacaTombol();
   stopStatusTimer();
 
-  // if (!timerBerhenti && timerBerjalan) {
-  if (timer.active()) {
+  if (!timerBerhenti && timerBerjalan) {
+  // if (timer.active()) {
     digitalWrite(LOAD, HIGH);
   } else {
     digitalWrite(LOAD, LOW);
@@ -369,22 +369,22 @@ void bacaTombol() {
   }
 
   // Baca status tombol reset
-  resetButtonState = digitalRead(RESET_BUTTON_PIN);
+  // resetButtonState = digitalRead(RESET_BUTTON_PIN);
 
   // Deteksi perubahan pada tombol reset
-  if (resetButtonState != lastResetButtonState) {
+  // if (resetButtonState != lastResetButtonState) {
     // Tunggu hingga tombol reset stabil
-    once_buz();
+    // once_buz();
 
     // Reset timer jika tombol reset ditekan saat timer berhenti
-    if (resetButtonState == LOW) {
-      resetTimer();
-    }
-  }
+    // if (resetButtonState == LOW) {
+    //   resetTimer();
+    // }
+  // }
 
   // Simpan status tombol dan resetButton
   lastButtonState = buttonState;
-  lastResetButtonState = resetButtonState;
+  // lastResetButtonState = resetButtonState;
 }
 
 void stopStatusTimer() {

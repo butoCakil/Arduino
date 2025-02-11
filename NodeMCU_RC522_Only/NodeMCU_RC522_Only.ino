@@ -3,13 +3,13 @@
 
 String kunciID = "5840211102";
 
-#define BUZ_PIN D0
-#define RELAY_PIN D1
+#define BUZ_PIN 16 // D0
+#define RELAY_PIN 5 // D1
 
 boolean bukaKunci = false; // false = 0 , true = 1
 
-constexpr uint8_t RST_PIN = D3;
-constexpr uint8_t SS_PIN = D4;
+constexpr uint8_t RST_PIN = 0; // D3
+constexpr uint8_t SS_PIN = 2; // D4
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key key;

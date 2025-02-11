@@ -38,6 +38,17 @@
 #define COUNT_RISING  1
 #define COUNT_BOTH    2
 
+// Constants for button modes
+#define INTERNAL_PULLUP  INPUT_PULLUP
+#ifdef INPUT_PULLDOWN
+#define INTERNAL_PULLDOWN INPUT_PULLDOWN
+#else
+#define INTERNAL_PULLDOWN INPUT
+#endif
+
+#define EXTERNAL_PULLUP   0xFE
+#define EXTERNAL_PULLDOWN 0xFF
+
 class ezButton
 {
 	private:
@@ -45,6 +56,8 @@ class ezButton
 		unsigned long debounceTime;
 		unsigned long count;
 		int countMode;
+		int pressedState;     // the state when the button is considered pressed
+		int unpressedState;   // the state when the button is considered unpressed
 
 		int previousSteadyState;  // the previous steady state from the input pin, used to detect pressed and released event
 		int lastSteadyState;      // the last steady state from the input pin

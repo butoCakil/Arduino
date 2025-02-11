@@ -12,8 +12,12 @@
 #include "login.h"
 #include "error.h"
 
+
+
 // Ganti true jika berhotspot tanpa password
+// boolean modeHotspot = false;
 boolean modeHotspot = false;
+boolean bootAP = false;
 
 // MQTT Broker Configuration
 char nodevice[20] = "";
@@ -24,7 +28,7 @@ const int mqtt_port = 1883;          // Port MQTT default
 const char* mqtt_user = "ben";       // Username MQTT Anda
 const char* mqtt_password = "1234";  // Password MQTT Anda
 
-boolean aktifSerialMsg = true;
+boolean aktifSerialMsg = false;
 boolean autoRestart = false;
 boolean tungguRespon = false;
 boolean saatnyaRestart = false;
@@ -68,6 +72,8 @@ const unsigned long TUNGGU_RESPON_SERVER = 5000;
 unsigned long previousLEDmqtt = 0;
 const long intervalLEDmqtt = 100;
 const long intervalLEDmqtt2 = 500;
+
+unsigned long milisterakhirgagal = 0;
 
 // Waktu mulai BootLoad
 unsigned long startTimeBootLoad;
@@ -317,7 +323,7 @@ void setup() {
   ssidNew = readStringFromEEPROM(0);
   passNew = readStringFromEEPROM(64);
 
-  if (digitalRead(SET_BTN) == HIGH) {
+  if (digitalRead(SET_BTN) == HIGH || bootAP == true) {
     digitalWrite(D0, HIGH);
     delay(100);
     digitalWrite(D0, LOW);
@@ -336,7 +342,7 @@ void setup() {
 
     // Congig WiFi
     // Jika ada nilai SSID dan password di EEPROM, coba terhubung ke WiFi
-    if (ssidNew != "" && passNew != "") {
+    if (ssidNew != "") {
       WiFi.mode(WIFI_STA);
       WiFi.begin(ssidNew.c_str(), passNew.c_str());
 
@@ -409,9 +415,20 @@ void setup() {
               Serial.println("Tersambung ke MQTT Broker");
 
             buzzBasedOnMessage("200");
+            break;
           } else {
             modeAPaktif = true;
             Serial.println("Koneksi MQTT gagal. Mengulangi koneksi...");
+
+            digitalWrite(LED_PIN, HIGH);
+            buzzBasedOnMessage("404");
+            digitalWrite(LED_PIN, LOW);
+            
+            if(millis() - milisterakhirgagal >= 180000){
+              ESP.restart();
+            }
+
+            milisterakhirgagal = millis();
           }
         }
 
@@ -433,7 +450,7 @@ void setup() {
     } else {
       modeAPaktif = true;
       delay(1000);
-      bukaAP("SSID dan password tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
+      bukaAP("SSID tidak ditemukan di EEPROM. Memulai mode Akses Poin...");
     }
   }
 
